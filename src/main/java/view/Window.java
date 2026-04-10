@@ -45,7 +45,7 @@ public class Window {
         if (window == NULL) throw new RuntimeException("Failed to create the GLFW window");
 
         glfwMakeContextCurrent(window);
-        glfwSwapInterval(1); // Locked 60 fps
+        glfwSwapInterval(1); // Locked 60
         glfwShowWindow(window);
     }
 
