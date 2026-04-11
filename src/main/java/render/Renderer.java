@@ -13,8 +13,10 @@ import static org.lwjgl.opengl.GL11.*;
 import static utils.GluUtils.gluPerspective;
 
 public class Renderer {
+    // General
     private TextRenderer textRenderer;
     private int width, height;
+    private int fractalList;
     // FPS
     private int frames = 0;
     private long oldmils;
@@ -32,6 +34,7 @@ public class Renderer {
         this.height = height;
     }
 
+    // Initialization
     public void init() {
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glEnable(GL_DEPTH_TEST);
@@ -42,11 +45,19 @@ public class Renderer {
         oldmils = System.nanoTime();
 
         camera = new Camera();
+
+        // Create a list that is located directly at GPUs memory for better performance
+        fractalList = glGenLists(1);
+        glNewList(fractalList, GL_COMPILE);
+        Fractal.renderMenger(3, 10f, 10f, 10f, 0f, 10f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f});
+        glEndList();
     }
 
+    // Function that repeats and redraws the scene
     public void display() {
         glViewport(0, 0, width, height);
 
+        // Cleaning up
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -61,6 +72,16 @@ public class Renderer {
         if (aDown) camera.left(moveSpeed);
         if (dDown) camera.right(moveSpeed);
 
+        // Model and view
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+
+        // Camera set up
+        camera.setMatrix();
+
+        // Render of 3D objects
+        renderObjects();
+
         // Projection
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
@@ -73,19 +94,11 @@ public class Renderer {
                     20 * width / (float) height,
                     -20, 20, 0.1f, 100.0f);
 
-        // Model and view
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity();
-
-        // Aplikujeme transformaci kamery (nahrazuje statické gluLookAt)
-        camera.setMatrix();
-
-        // Render of 3D objects
-        renderObjects();
         // Render of text
         renderText();
     }
 
+    // FPS calculation
     private void updateFPS() {
         frames++;
         long mils = System.nanoTime();
@@ -98,16 +111,21 @@ public class Renderer {
         }
     }
 
+    // Renders all objects in the scene
     private void renderObjects() {
         glEnable(GL_DEPTH_TEST);
 
         renderAxis();
 
         glPushMatrix();
-        Fractal.drawSierpinskiPyramid(3, 10.0f, 10.0f);
+//        Fractal.renderSierpinski(4, 10.0f, 10.0f, 10.0f, 0.0f, 10.0f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f});
+//        glTranslatef(20, 0, 0);
+//        Fractal.renderMenger(4, 10.0f, 10.0f, 10.0f, 0.0f, 10.0f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f});
+            glCallList(fractalList);
         glPopMatrix();
     }
 
+    // Renders all text in the scene
     private void renderText() {
         glDisable(GL_DEPTH_TEST);
 
@@ -127,6 +145,7 @@ public class Renderer {
         glPopMatrix();
     }
 
+    // Renders XYZ axis
     public void renderAxis() {
         glBegin(GL_LINES);
         glColor3f(1f, 0f, 0f);
@@ -141,6 +160,7 @@ public class Renderer {
         glEnd();
     }
 
+    // Key handler
     public void handleKey(int key, int action) {
         boolean isDown = (action != GLFW_RELEASE);
         if (key == GLFW_KEY_W) wDown = isDown;
@@ -149,10 +169,12 @@ public class Renderer {
         if (key == GLFW_KEY_D) dDown = isDown;
     }
 
+    // Mouse button handler
     public void handleMouseButton(boolean down) {
         isLooking = down;
     }
 
+    // Mouse movement handler
     public void handleMouseMotion(double x, double y) {
         if (isLooking) {
             double dx = x - lastMouseX;

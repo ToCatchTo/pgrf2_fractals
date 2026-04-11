@@ -3,58 +3,51 @@ package objects;
 import static org.lwjgl.opengl.GL11.*;
 
 public class Cube {
-
     /**
-     * Vykreslí barevnou kostku se středem v [0,0,0].
-     * @param size Celková délka hrany kostky.
+     * @param width         Width of the object 
+     * @param length        Length of the object 
+     * @param height        Height of the object 
+     * @param colorTop      Top color of the object
+     * @param colorBottom   Bottom color of the object
      */
-    public static void render(float size) {
-        float h = size / 2.0f; // Polovina velikosti pro centrování
+    public static void render(float width, float length, float height, float[] colorTop, float[] colorBottom) {
+        float halfWidth = width / 2.0f;
+        float halfLength = length / 2.0f;
+        float halfHeight = height / 2.0f;
 
         glBegin(GL_QUADS);
-
-        // Přední stěna (Osa Y z tvého pohledu)
-        glColor3f(1.0f, 0.0f, 0.0f); // Červená
-        glVertex3f(-h, -h,  h);
-        glVertex3f( h, -h,  h);
-        glVertex3f( h,  h,  h);
-        glVertex3f(-h,  h,  h);
-
-        // Zadní stěna
-        glColor3f(0.0f, 1.0f, 0.0f); // Zelená
-        glVertex3f( h, -h, -h);
-        glVertex3f(-h, -h, -h);
-        glVertex3f(-h,  h, -h);
-        glVertex3f( h,  h, -h);
-
-        // Horní stěna (Osa Z nahoru)
-        glColor3f(0.0f, 0.0f, 1.0f); // Modrá
-        glVertex3f(-h,  h,  h);
-        glVertex3f( h,  h,  h);
-        glVertex3f( h,  h, -h);
-        glVertex3f(-h,  h, -h);
-
-        // Spodní stěna
-        glColor3f(1.0f, 1.0f, 0.0f); // Žlutá
-        glVertex3f(-h, -h, -h);
-        glVertex3f( h, -h, -h);
-        glVertex3f( h, -h,  h);
-        glVertex3f(-h, -h,  h);
-
-        // Pravá stěna
-        glColor3f(1.0f, 0.0f, 1.0f); // Fialová
-        glVertex3f( h, -h,  h);
-        glVertex3f( h, -h, -h);
-        glVertex3f( h,  h, -h);
-        glVertex3f( h,  h,  h);
-
-        // Levá stěna
-        glColor3f(0.0f, 1.0f, 1.0f); // Tyrkysová
-        glVertex3f(-h, -h, -h);
-        glVertex3f(-h, -h,  h);
-        glVertex3f(-h,  h,  h);
-        glVertex3f(-h,  h, -h);
-
+        // Top
+        glColor3fv(colorTop);
+        glTexCoord2f(0.0f, 0.0f); glVertex3f(-halfWidth, -halfLength, halfHeight);
+        glTexCoord2f(1.0f, 0.0f); glVertex3f(halfWidth, -halfLength, halfHeight);
+        glTexCoord2f(1.0f, 1.0f); glVertex3f(halfWidth, halfLength, halfHeight);
+        glTexCoord2f(0.0f, 1.0f); glVertex3f(-halfWidth, halfLength, halfHeight);
+        // Bottom
+        glColor3fv(colorBottom);
+        glTexCoord2f(0.0f, 0.0f); glVertex3f(-halfWidth, -halfLength, -halfHeight);
+        glTexCoord2f(1.0f, 0.0f); glVertex3f(halfWidth, -halfLength, -halfHeight);
+        glTexCoord2f(1.0f, 1.0f); glVertex3f(halfWidth, halfLength, -halfHeight);
+        glTexCoord2f(0.0f, 1.0f); glVertex3f(-halfWidth, halfLength, -halfHeight);
+        // Front
+        glColor3fv(colorBottom); glTexCoord2f(0.0f, 0.0f); glVertex3f(-halfWidth, -halfLength, -halfHeight);
+        glColor3fv(colorBottom); glTexCoord2f(1.0f, 0.0f); glVertex3f( halfWidth, -halfLength, -halfHeight);
+        glColor3fv(colorTop); glTexCoord2f(1.0f, 1.0f); glVertex3f( halfWidth, -halfLength,  halfHeight);
+        glColor3fv(colorTop); glTexCoord2f(0.0f, 1.0f); glVertex3f(-halfWidth, -halfLength,  halfHeight);
+        // Back
+        glColor3fv(colorBottom); glTexCoord2f(0.0f, 0.0f); glVertex3f( halfWidth,  halfLength, -halfHeight);
+        glColor3fv(colorBottom); glTexCoord2f(1.0f, 0.0f); glVertex3f(-halfWidth,  halfLength, -halfHeight);
+        glColor3fv(colorTop); glTexCoord2f(1.0f, 1.0f); glVertex3f(-halfWidth,  halfLength,  halfHeight);
+        glColor3fv(colorTop); glTexCoord2f(0.0f, 1.0f); glVertex3f( halfWidth,  halfLength,  halfHeight);
+        // Left
+        glColor3fv(colorBottom); glTexCoord2f(0.0f, 0.0f); glVertex3f(-halfWidth,  halfLength, -halfHeight);
+        glColor3fv(colorBottom); glTexCoord2f(1.0f, 0.0f); glVertex3f(-halfWidth, -halfLength, -halfHeight);
+        glColor3fv(colorTop); glTexCoord2f(1.0f, 1.0f); glVertex3f(-halfWidth, -halfLength,  halfHeight);
+        glColor3fv(colorTop); glTexCoord2f(0.0f, 1.0f); glVertex3f(-halfWidth,  halfLength,  halfHeight);
+        // Right
+        glColor3fv(colorBottom); glTexCoord2f(0.0f, 0.0f); glVertex3f( halfWidth, -halfLength, -halfHeight);
+        glColor3fv(colorBottom); glTexCoord2f(1.0f, 0.0f); glVertex3f( halfWidth,  halfLength, -halfHeight);
+        glColor3fv(colorTop); glTexCoord2f(1.0f, 1.0f); glVertex3f( halfWidth,  halfLength,  halfHeight);
+        glColor3fv(colorTop); glTexCoord2f(0.0f, 1.0f); glVertex3f( halfWidth, -halfLength,  halfHeight);
         glEnd();
     }
 }
