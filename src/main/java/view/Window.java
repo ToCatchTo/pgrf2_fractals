@@ -34,8 +34,6 @@ public class Window {
     public void init() {
         if (!glfwInit()) throw new IllegalStateException("Unable to initialize GLFW");
 
-        // TODO: setup callbacks calls here
-
         // Sets up window "properties"
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
@@ -43,6 +41,24 @@ public class Window {
         // Creates window
         window = glfwCreateWindow(width, height, title, NULL, NULL);
         if (window == NULL) throw new RuntimeException("Failed to create the GLFW window");
+
+        // Set up callbacks
+        glfwSetKeyCallback(window, (win, key, scancode, action, mods) -> {
+            if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) {
+                glfwSetWindowShouldClose(win, true);
+            }
+            renderer.handleKey(key, action);
+        });
+
+        glfwSetMouseButtonCallback(window, (win, button, action, mods) -> {
+            if (button == GLFW_MOUSE_BUTTON_1) {
+                renderer.handleMouseButton(action == GLFW_PRESS);
+            }
+        });
+
+        glfwSetCursorPosCallback(window, (win, xpos, ypos) -> {
+            renderer.handleMouseMotion(xpos, ypos);
+        });
 
         glfwMakeContextCurrent(window);
         glfwSwapInterval(1); // Locked 60

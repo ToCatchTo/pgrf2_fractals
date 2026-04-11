@@ -1,12 +1,15 @@
 package render;
 
+import objects.Cube;
+import objects.Fractal;
+import objects.Pyramid;
+import utils.Camera;
 import utils.TextRenderer;
 
 import java.awt.*;
-import java.awt.image.BufferStrategy;
 
+import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
-import static utils.GluUtils.gluLookAt;
 import static utils.GluUtils.gluPerspective;
 
 public class Renderer {
@@ -17,8 +20,12 @@ public class Renderer {
     private long oldmils;
     private int currentFps = 0;
     // Perspective
-    private boolean per = false;
-    // TODO: Camera
+    private boolean per = true;
+    // Camera
+    private Camera camera;
+    private boolean wDown, sDown, aDown, dDown;
+    private double lastMouseX, lastMouseY;
+    private boolean isLooking = false;
 
     public Renderer(int width, int height) {
         this.width = width;
@@ -29,8 +36,12 @@ public class Renderer {
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glEnable(GL_DEPTH_TEST);
 
+        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // Wireframe mode maybe implement?
+
         textRenderer = new TextRenderer(width, height);
         oldmils = System.nanoTime();
+
+        camera = new Camera();
     }
 
     public void display() {
@@ -41,12 +52,16 @@ public class Renderer {
 
         updateFPS();
 
-        // MV (Model and view)
-        glMatrixMode(GL_MODELVIEW);
+        // Calculations for smooth camera movement
+        float deltaTime = 1.0f / (currentFps > 0 ? currentFps : 60);
+        float moveSpeed = 20.0f * deltaTime;
 
-        glRotatef(1, 0, 0, 1);
+        if (wDown) camera.forward(moveSpeed);
+        if (sDown) camera.backward(moveSpeed);
+        if (aDown) camera.left(moveSpeed);
+        if (dDown) camera.right(moveSpeed);
 
-        // P (Projection)
+        // Projection
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
 
@@ -58,28 +73,17 @@ public class Renderer {
                     20 * width / (float) height,
                     -20, 20, 0.1f, 100.0f);
 
-        // Camera setup (position XYZ, point of direction XYZ, rotation XYZ)
-        gluLookAt(40, 40, 20, 0, 0, 0, 0, 0, 0.8);
+        // Model and view
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+
+        // Aplikujeme transformaci kamery (nahrazuje statické gluLookAt)
+        camera.setMatrix();
 
         // Render of 3D objects
         renderObjects();
-
-        glDisable(GL_DEPTH_TEST);
-
         // Render of text
-        glMatrixMode(GL_PROJECTION);
-        glPushMatrix();
-        glLoadIdentity();
-        glMatrixMode(GL_MODELVIEW);
-        glPushMatrix();
-        glLoadIdentity();
-
         renderText();
-
-        glMatrixMode(GL_PROJECTION);
-        glPopMatrix();
-        glMatrixMode(GL_MODELVIEW);
-        glPopMatrix();
     }
 
     private void updateFPS() {
@@ -95,6 +99,35 @@ public class Renderer {
     }
 
     private void renderObjects() {
+        glEnable(GL_DEPTH_TEST);
+
+        renderAxis();
+
+        glPushMatrix();
+        Fractal.drawSierpinskiPyramid(3, 10.0f, 10.0f);
+        glPopMatrix();
+    }
+
+    private void renderText() {
+        glDisable(GL_DEPTH_TEST);
+
+        glMatrixMode(GL_PROJECTION);
+        glPushMatrix();
+        glLoadIdentity();
+        glMatrixMode(GL_MODELVIEW);
+        glPushMatrix();
+        glLoadIdentity();
+
+        textRenderer.drawText("FPS: " + currentFps, 20, 30, Color.WHITE);
+        textRenderer.drawText("Projekt: Fraktály", 20, 60, Color.WHITE);
+
+        glMatrixMode(GL_PROJECTION);
+        glPopMatrix();
+        glMatrixMode(GL_MODELVIEW);
+        glPopMatrix();
+    }
+
+    public void renderAxis() {
         glBegin(GL_LINES);
         glColor3f(1f, 0f, 0f);
         glVertex3f(0f, 0f, 0f);
@@ -106,31 +139,29 @@ public class Renderer {
         glVertex3f(0f, 0f, 0f);
         glVertex3f(0f, 0f, 100f);
         glEnd();
-
-        glBegin(GL_TRIANGLE_FAN);
-        glColor3f(1.0f, 1.0f, 1.0f);
-        glVertex3f(5.0f, 5.0f, 10.0f);
-        glColor3f(1.0f, 0.0f, 0.0f);
-        glVertex3f(0.0f, 0.0f, 0.0f);
-        glColor3f(0.0f, 1.0f, 0.0f);
-        glVertex3f(10.0f, 0.0f, 0.0f);
-        glColor3f(0.0f, 0.0f, 1.0f);
-        glVertex3f(10.0f, 10.0f, 0.0f);
-        glColor3f(1.0f, 1.0f, 0.0f);
-        glVertex3f(0.0f, 10.0f, 0.0f);
-        glEnd();
     }
 
-    private void renderText() {
-        textRenderer.drawText("FPS: " + currentFps, 20, 30, Color.WHITE);
-        textRenderer.drawText("Tomas Terc - Projekt", 20, 60, Color.WHITE);
+    public void handleKey(int key, int action) {
+        boolean isDown = (action != GLFW_RELEASE);
+        if (key == GLFW_KEY_W) wDown = isDown;
+        if (key == GLFW_KEY_S) sDown = isDown;
+        if (key == GLFW_KEY_A) aDown = isDown;
+        if (key == GLFW_KEY_D) dDown = isDown;
     }
 
-//    public void reshape(int width, int height) {
-//        this.width = width;
-//        this.height = height;
-//        if (textRenderer != null) {
-//            textRenderer.resize(width, height);
-//        }
-//    }
+    public void handleMouseButton(boolean down) {
+        isLooking = down;
+    }
+
+    public void handleMouseMotion(double x, double y) {
+        if (isLooking) {
+            double dx = x - lastMouseX;
+            double dy = y - lastMouseY;
+
+            camera.addAzimuth(-dx * 0.005);
+            camera.addZenith(-dy * 0.005);
+        }
+        lastMouseX = x;
+        lastMouseY = y;
+    }
 }
