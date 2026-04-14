@@ -2,16 +2,24 @@ package objects;
 
 import static org.lwjgl.opengl.GL11.*;
 
-public class Pyramid {
-    /**
-     * @param width         Width of the object
-     * @param length        Length of the object
-     * @param height        Height of the object
-     * @param colorTop      Top color of the object
-     * @param colorBottom   Bottom color of the object
-    */
+public class Pyramid extends BaseObject {
+    private Fractal parentFractal;
+    private float width, height, length;
+    private float[] colorTop, colorBottom;
 
-    public static void render(float width, float length, float height, float[] colorTop, float[] colorBottom) {
+    public Pyramid(float width, float length, float height, float[] colorTop, float[] colorBottom, Fractal parentFractal) {
+        this.width = width; this.length = length; this.height = height;
+        this.colorTop = colorTop; this.colorBottom = colorBottom;
+        this.parentFractal = parentFractal;
+    }
+
+    public Fractal getParentFractal() { return parentFractal; }
+    @Override
+    public void render() {
+        glPushMatrix();
+
+        applyTransformations();
+
         // Divide for better handling
         float halfWidth = width / 2.0f;
         float halfLength = length / 2.0f;
@@ -43,5 +51,7 @@ public class Pyramid {
             glTexCoord2f(1.0f, 1.0f); glVertex3f(halfWidth, halfLength, 0);
             glTexCoord2f(0.0f, 1.0f); glVertex3f(-halfWidth, halfLength, 0);
         glEnd();
+
+        glPopMatrix();
     }
 }

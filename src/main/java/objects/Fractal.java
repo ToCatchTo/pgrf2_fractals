@@ -1,8 +1,20 @@
 package objects;
 
+import utils.FractalType;
+
+import java.util.ArrayList;
+
 import static org.lwjgl.opengl.GL11.*;
 
 public class Fractal {
+    private int depth;
+    private float width, length, height;
+    private float baseZ;
+    private float gradientLevel;
+    private float[] colorTop, colorBottom;
+    private FractalType type;
+    private ArrayList<BaseObject> objectList = new ArrayList<BaseObject>();
+
     /**
      * @param depth          Depth of recursion
      * @param width          Width of the whole fractal
@@ -12,18 +24,45 @@ public class Fractal {
      * @param gradientLevel  Controls the level of gradient
      * @param colorTop       Top color of the fractal
      * @param colorBottom    Bottom color of the fractal
-    */
-    public static void renderSierpinski(int depth, float width, float length, float height, float baseZ, float gradientLevel, float[] colorTop, float[] colorBottom) {
+     */
+    public Fractal(int depth, float width, float length, float height, float baseZ, float gradientLevel, float[] colorTop, float[] colorBottom, FractalType type) {
+        this.depth = depth;
+        this.width = width;
+        this.length = length;
+        this.height = height;
+        this.baseZ = baseZ;
+        this.gradientLevel = gradientLevel;
+        this.colorTop = colorTop;
+        this.colorBottom = colorBottom;
+        this.type = type;
+    }
+
+    public void render() {
+        switch (type) {
+            case SIERPINSKI_PYRAMID:
+                renderSierpinski(depth, width, length, height, baseZ, gradientLevel, colorTop, colorBottom);
+                break;
+            case MENGER_SPONGE:
+                renderMenger(depth, width, length, height, baseZ, gradientLevel, colorTop, colorBottom);
+                break;
+        }
+    }
+
+    private void renderSierpinski(int depth, float width, float length, float height, float baseZ, float gradientLevel, float[] colorTop, float[] colorBottom) {
         // Ending condition
         if (depth == 0) {
             // Checks for color difference
             if(colorTop == colorBottom || gradientLevel == 0) {
-                Pyramid.render(width, length, height, colorTop, colorTop);
+                Pyramid pyramid = new Pyramid(width, length, height, colorTop, colorTop, this);
+                objectList.add(pyramid);
+                pyramid.render();
             } else {
                 // Calculate interpolated color based on the current Z level
-                float[] bCol = lerp(colorBottom, colorTop, baseZ / gradientLevel);
-                float[] tCol = lerp(colorBottom, colorTop, (baseZ + height) / gradientLevel);
-                Pyramid.render(width, length, height, tCol, bCol);
+                float[] bottomColorInterpolated = lerp(colorBottom, colorTop, baseZ / gradientLevel);
+                float[] topColorInterpolated = lerp(colorBottom, colorTop, (baseZ + height) / gradientLevel);
+                Pyramid pyramid = new Pyramid(width, length, height, topColorInterpolated, bottomColorInterpolated, this);
+                objectList.add(pyramid);
+                pyramid.render();
             }
 
             return;
@@ -61,21 +100,21 @@ public class Fractal {
         }
     }
 
-    /**
-     * @param depth          Depth of recursion
-     * @param width          Width of the whole fractal
-     * @param length         Length of the whole fractal
-     * @param height         Height of the whole fractal
-     * @param baseZ          Current Z position of the fractal
-     * @param gradientLevel  Controls the level of gradient
-     * @param colorTop       Top color of the fractal
-     * @param colorBottom    Bottom color of the fractal
-    */
-    public static void renderMenger(int depth, float width, float length, float height, float baseZ, float gradientLevel, float[] colorTop, float[] colorBottom) {
+    private void renderMenger(int depth, float width, float length, float height, float baseZ, float gradientLevel, float[] colorTop, float[] colorBottom) {
         if (depth == 0) {
-            float[] bCol = lerp(colorBottom, colorTop, baseZ / gradientLevel);
-            float[] tCol = lerp(colorBottom, colorTop, (baseZ + height) / gradientLevel);
-            Cube.render(width, length, height, tCol, bCol);
+            if(colorTop == colorBottom || gradientLevel == 0) {
+                Cube cube = new Cube(width, length, height, colorTop, colorBottom, this);
+                objectList.add(cube);
+                cube.render();
+            } else {
+                // Calculate interpolated color based on the current Z level
+                float[] bottomColorInterpolated = lerp(colorBottom, colorTop, baseZ / gradientLevel);
+                float[] topColorInterpolated = lerp(colorBottom, colorTop, (baseZ + height) / gradientLevel);
+                Cube cube = new Cube(width, length, height, topColorInterpolated, bottomColorInterpolated, this);
+                objectList.add(cube);
+                cube.render();
+            }
+
             return;
         }
 
@@ -113,5 +152,9 @@ public class Fractal {
                 a[1] + (b[1] - a[1]) * t,
                 a[2] + (b[2] - a[2]) * t
         };
+    }
+
+    public ArrayList<BaseObject> getObjectList() {
+        return objectList;
     }
 }

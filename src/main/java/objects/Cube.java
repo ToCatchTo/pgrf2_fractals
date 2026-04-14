@@ -2,15 +2,20 @@ package objects;
 
 import static org.lwjgl.opengl.GL11.*;
 
-public class Cube {
-    /**
-     * @param width         Width of the object 
-     * @param length        Length of the object 
-     * @param height        Height of the object 
-     * @param colorTop      Top color of the object
-     * @param colorBottom   Bottom color of the object
-     */
-    public static void render(float width, float length, float height, float[] colorTop, float[] colorBottom) {
+public class Cube extends BaseObject {
+    private Fractal parentFractal;
+    private float width, height, length;
+    private float[] colorTop, colorBottom;
+
+    public Cube(float width, float length, float height, float[] colorTop, float[] colorBottom, Fractal parentFractal) {
+        this.width = width; this.length = length; this.height = height;
+        this.colorTop = colorTop; this.colorBottom = colorBottom;
+        this.parentFractal = parentFractal;
+    }
+
+    public Fractal getParentFractal() { return parentFractal; }
+
+    public void render() {
         float halfWidth = width / 2.0f;
         float halfLength = length / 2.0f;
         float halfHeight = height / 2.0f;

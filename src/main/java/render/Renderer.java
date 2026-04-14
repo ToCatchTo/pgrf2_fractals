@@ -4,6 +4,7 @@ import objects.Cube;
 import objects.Fractal;
 import objects.Pyramid;
 import utils.Camera;
+import utils.FractalType;
 import utils.TextRenderer;
 
 import java.awt.*;
@@ -28,6 +29,8 @@ public class Renderer {
     private boolean wDown, sDown, aDown, dDown;
     private double lastMouseX, lastMouseY;
     private boolean isLooking = false;
+    public Pyramid pyramid;
+    public Fractal fractal;
 
     public Renderer(int width, int height) {
         this.width = width;
@@ -46,11 +49,16 @@ public class Renderer {
 
         camera = new Camera();
 
+        fractal = new Fractal(1, 10.0f, 10.0f, 10.0f, 0.0f, 10.0f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f}, FractalType.MENGER_SPONGE);
+        pyramid = new Pyramid(10f, 10f, 10f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f}, fractal);
+
+        pyramid.move(10f, 0f, 0f);
+
         // Create a list that is located directly at GPUs memory for better performance
-        fractalList = glGenLists(1);
-        glNewList(fractalList, GL_COMPILE);
-        Fractal.renderMenger(3, 10f, 10f, 10f, 0f, 10f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f});
-        glEndList();
+        // fractalList = glGenLists(1);
+        // glNewList(fractalList, GL_COMPILE);
+        // Fractal.renderMenger(3, 10f, 10f, 10f, 0f, 10f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f});
+        // glEndList();
     }
 
     // Function that repeats and redraws the scene
@@ -121,7 +129,11 @@ public class Renderer {
 //        Fractal.renderSierpinski(4, 10.0f, 10.0f, 10.0f, 0.0f, 10.0f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f});
 //        glTranslatef(20, 0, 0);
 //        Fractal.renderMenger(4, 10.0f, 10.0f, 10.0f, 0.0f, 10.0f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f});
-            glCallList(fractalList);
+            //glCallList(fractalList);
+
+            // fractal.render();
+            pyramid.render();
+
         glPopMatrix();
     }
 
