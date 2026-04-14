@@ -1,13 +1,16 @@
 package render;
 
+import objects.BaseObject;
 import objects.Cube;
 import objects.Fractal;
 import objects.Pyramid;
 import utils.Camera;
+import utils.ControlMode;
 import utils.FractalType;
 import utils.TextRenderer;
 
 import java.awt.*;
+import java.util.ArrayList;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -18,6 +21,11 @@ public class Renderer {
     private TextRenderer textRenderer;
     private int width, height;
     private int fractalList;
+    private ControlMode currentControlMode = ControlMode.NONE;
+    private ArrayList<Fractal> fractals = new ArrayList<Fractal>();
+    private ArrayList<BaseObject> basicObjects = new ArrayList<BaseObject>();
+    private int selectedObjectIndex = 0;
+    private BaseObject selectedObject = null;
     // FPS
     private int frames = 0;
     private long oldmils;
@@ -49,6 +57,8 @@ public class Renderer {
 
         camera = new Camera();
 
+
+
         fractal = new Fractal(1, 10.0f, 10.0f, 10.0f, 0.0f, 10.0f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f}, FractalType.MENGER_SPONGE);
         pyramid = new Pyramid(10f, 10f, 10f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f}, fractal);
 
@@ -73,12 +83,12 @@ public class Renderer {
 
         // Calculations for smooth camera movement
         float deltaTime = 1.0f / (currentFps > 0 ? currentFps : 60);
-        float moveSpeed = 20.0f * deltaTime;
+        float movetranslationStep = 20.0f * deltaTime;
 
-        if (wDown) camera.forward(moveSpeed);
-        if (sDown) camera.backward(moveSpeed);
-        if (aDown) camera.left(moveSpeed);
-        if (dDown) camera.right(moveSpeed);
+        if (wDown) camera.forward(movetranslationStep);
+        if (sDown) camera.backward(movetranslationStep);
+        if (aDown) camera.left(movetranslationStep);
+        if (dDown) camera.right(movetranslationStep);
 
         // Model and view
         glMatrixMode(GL_MODELVIEW);
@@ -93,6 +103,8 @@ public class Renderer {
         // Projection
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
+
+        System.out.println(currentControlMode);
 
         // Perspective Switch
         if (per)
@@ -132,7 +144,9 @@ public class Renderer {
             //glCallList(fractalList);
 
             // fractal.render();
-            pyramid.render();
+        for (int i = 0; i < ob; i++) {
+
+        }
 
         glPopMatrix();
     }
@@ -174,11 +188,140 @@ public class Renderer {
 
     // Key handler
     public void handleKey(int key, int action) {
+        // Camera movement
         boolean isDown = (action != GLFW_RELEASE);
         if (key == GLFW_KEY_W) wDown = isDown;
         if (key == GLFW_KEY_S) sDown = isDown;
         if (key == GLFW_KEY_A) aDown = isDown;
         if (key == GLFW_KEY_D) dDown = isDown;
+
+        float translationStep = 1.0f;
+        int rotationStep = 15;
+        float scaleStep = 0.05f;
+
+        // Key handling horror tree
+        switch (action) {
+            // Tap
+            case GLFW_PRESS:
+                switch (key) {
+                    case GLFW_KEY_LEFT:
+                        if(currentControlMode == ControlMode.TRANSLATION) {
+                            pyramid.move(translationStep, 0, 0);
+                        } else if(currentControlMode == ControlMode.ROTATION) {
+                            pyramid.rotate(rotationStep, 1f, 0f, 0f);
+                        } else if(currentControlMode == ControlMode.SELECTION) {
+                            selectedObjectIndex--;
+                        }
+                    break;
+                    case GLFW_KEY_RIGHT:
+                        if(currentControlMode == ControlMode.TRANSLATION) {
+                            pyramid.move(-translationStep, 0, 0);
+                        } else if(currentControlMode == ControlMode.ROTATION) {
+                            pyramid.rotate(-rotationStep, 1f, 0f, 0f);
+                        } else if(currentControlMode == ControlMode.SELECTION) {
+                            selectedObjectIndex++;
+                        }
+                    break;
+                    case GLFW_KEY_KP_ADD:
+                        if(currentControlMode == ControlMode.TRANSLATION) {
+                            pyramid.move(0, 0, translationStep);
+                        } else if(currentControlMode == ControlMode.ROTATION) {
+                            pyramid.rotate(rotationStep, 0f, 0f, 1f);
+                        }
+                    break;
+                    case GLFW_KEY_KP_SUBTRACT:
+                        if(currentControlMode == ControlMode.TRANSLATION) {
+                            pyramid.move(0, 0, -translationStep);
+                        } else if(currentControlMode == ControlMode.ROTATION) {
+                            pyramid.rotate(-rotationStep, 0f, 0f, 1f);
+                        }
+                    break;
+                    case GLFW_KEY_UP:
+                        if(currentControlMode == ControlMode.TRANSLATION) {
+                            pyramid.move(0, translationStep, 0);
+                        } else if(currentControlMode == ControlMode.ROTATION) {
+                            pyramid.rotate(rotationStep, 0f, 1f, 0f);
+                        } else if(currentControlMode == ControlMode.SCALE) {
+                            pyramid.scale(1 + scaleStep);
+                        }
+                    break;
+                    case GLFW_KEY_DOWN:
+                        if(currentControlMode == ControlMode.TRANSLATION) {
+                            pyramid.move(0, -translationStep, 0);
+                        } else if(currentControlMode == ControlMode.ROTATION) {
+                            pyramid.rotate(-rotationStep, 0f, 1f, 0f);
+                        } else if(currentControlMode == ControlMode.SCALE) {
+                            pyramid.scale(1 - scaleStep);
+                        }
+                    break;
+                    case GLFW_KEY_T:
+                        currentControlMode = ControlMode.TRANSLATION;
+                    break;
+                    case GLFW_KEY_R:
+                        currentControlMode = ControlMode.ROTATION;
+                    break;
+                    case GLFW_KEY_Z:
+                        currentControlMode = ControlMode.SCALE;
+                    break;
+                    case GLFW_KEY_C:
+                        currentControlMode = ControlMode.NONE;
+                    break;
+                    case GLFW_KEY_V:
+                        currentControlMode = ControlMode.SELECTION;
+                }
+            break;
+            // Holding
+            case GLFW_REPEAT:
+                switch (key) {
+                    case GLFW_KEY_LEFT:
+                        if(currentControlMode == ControlMode.TRANSLATION) {
+                            pyramid.move(translationStep, 0, 0);
+                        } else if(currentControlMode == ControlMode.ROTATION) {
+                            pyramid.rotate(rotationStep, 1f, 0f, 0f);
+                        }
+                    break;
+                    case GLFW_KEY_RIGHT:
+                        if(currentControlMode == ControlMode.TRANSLATION) {
+                            pyramid.move(-translationStep, 0, 0);
+                        } else if(currentControlMode == ControlMode.ROTATION) {
+                            pyramid.rotate(-rotationStep, 1f, 0f, 0f);
+                        }
+                    break;
+                    case GLFW_KEY_KP_ADD:
+                        if(currentControlMode == ControlMode.TRANSLATION) {
+                            pyramid.move(0, 0, translationStep);
+                        } else if(currentControlMode == ControlMode.ROTATION) {
+                            pyramid.rotate(rotationStep, 0f, 0f, 1f);
+                        }
+                    break;
+                    case GLFW_KEY_KP_SUBTRACT:
+                        if(currentControlMode == ControlMode.TRANSLATION) {
+                            pyramid.move(0, 0, -translationStep);
+                        } else if(currentControlMode == ControlMode.ROTATION) {
+                            pyramid.rotate(-rotationStep, 0f, 0f, 1f);
+                        }
+                    break;
+                    case GLFW_KEY_UP:
+                        if(currentControlMode == ControlMode.TRANSLATION) {
+                            pyramid.move(0, translationStep, 0);
+                        } else if(currentControlMode == ControlMode.ROTATION) {
+                            pyramid.rotate(rotationStep, 0f, 1f, 0f);
+                        } else if(currentControlMode == ControlMode.SCALE) {
+                            pyramid.scale(1 + scaleStep);
+                        }
+                    break;
+                    case GLFW_KEY_DOWN:
+                        if(currentControlMode == ControlMode.TRANSLATION) {
+                            pyramid.move(0, -translationStep, 0);
+                        } else if(currentControlMode == ControlMode.ROTATION) {
+                            pyramid.rotate(-rotationStep, 0f, 1f, 0f);
+                        } else if(currentControlMode == ControlMode.SCALE) {
+                            pyramid.scale(1 - scaleStep);
+                        }
+                    break;
+                }
+            break;
+        }
     }
 
     // Mouse button handler
