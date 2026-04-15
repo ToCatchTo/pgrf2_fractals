@@ -5,5 +5,6 @@ public enum ControlMode {
     TRANSLATION,
     ROTATION,
     SCALE,
-    SELECTION
+    FRACTAL_SELECTION,
+    OBJECT_SELECTION,
 }

@@ -13,7 +13,14 @@ public class Pyramid extends BaseObject {
         this.parentFractal = parentFractal;
     }
 
+    public Pyramid(float width, float length, float height, float[] colorTop, float[] colorBottom) {
+        this.width = width; this.length = length; this.height = height;
+        this.colorTop = colorTop; this.colorBottom = colorBottom;
+        this.parentFractal = null;
+    }
+
     public Fractal getParentFractal() { return parentFractal; }
+
     @Override
     public void render() {
         glPushMatrix();
@@ -53,5 +60,31 @@ public class Pyramid extends BaseObject {
         glEnd();
 
         glPopMatrix();
+    }
+
+    // Translation logic
+    public void move(float x, float y, float z) {
+        this.posX += x;
+        this.posY += y;
+        this.posZ += z;
+    }
+
+    // Rotation logic
+    public void rotate(float angle, float x, float y, float z) {
+        this.rotAngle += angle;
+        this.rotX = x;
+        this.rotY = y;
+        this.rotZ = z;
+    }
+
+    // Scaling logic
+    public void scale(float s) {
+        this.scaleXYZ *= s;
+    }
+
+    public void applyTransformations() {
+        glTranslatef(posX, posY, posZ);
+        glRotatef(rotAngle, rotX, rotY, rotZ);
+        glScalef(scaleXYZ, scaleXYZ, scaleXYZ);
     }
 }

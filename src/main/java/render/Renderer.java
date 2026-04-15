@@ -21,11 +21,15 @@ public class Renderer {
     private TextRenderer textRenderer;
     private int width, height;
     private int fractalList;
+    // Object management
     private ControlMode currentControlMode = ControlMode.NONE;
     private ArrayList<Fractal> fractals = new ArrayList<Fractal>();
     private ArrayList<BaseObject> basicObjects = new ArrayList<BaseObject>();
     private int selectedObjectIndex = 0;
     private BaseObject selectedObject = null;
+    private int selectedFractalIndex = 0;
+    private Fractal selectedFractal = null;
+    private boolean isFractalModeActive = false;
     // FPS
     private int frames = 0;
     private long oldmils;
@@ -37,8 +41,6 @@ public class Renderer {
     private boolean wDown, sDown, aDown, dDown;
     private double lastMouseX, lastMouseY;
     private boolean isLooking = false;
-    public Pyramid pyramid;
-    public Fractal fractal;
 
     public Renderer(int width, int height) {
         this.width = width;
@@ -57,12 +59,23 @@ public class Renderer {
 
         camera = new Camera();
 
+        Pyramid pyramid = new Pyramid(10.0f, 10.0f, 10.0f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f});
+        basicObjects.add(pyramid);
+        pyramid.move(20f, 0f, 0f);
 
+//        Fractal sierpinskiPyramid = new Fractal(4, 10f, 10f, 10f, 0f, 10f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f}, FractalType.SIERPINSKI_PYRAMID);
+//        fractals.add(sierpinskiPyramid);
 
-        fractal = new Fractal(1, 10.0f, 10.0f, 10.0f, 0.0f, 10.0f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f}, FractalType.MENGER_SPONGE);
-        pyramid = new Pyramid(10f, 10f, 10f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f}, fractal);
+        Fractal mengerSponge = new Fractal(2, 10f, 10f, 10f, 0f, 10f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f}, FractalType.MENGER_SPONGE);
+        fractals.add(mengerSponge);
 
-        pyramid.move(10f, 0f, 0f);
+        if(!fractals.isEmpty()) {
+            selectedFractal = fractals.get(selectedFractalIndex);
+        }
+
+        if(!basicObjects.isEmpty()) {
+            selectedObject = basicObjects.get(selectedObjectIndex);
+        }
 
         // Create a list that is located directly at GPUs memory for better performance
         // fractalList = glGenLists(1);
@@ -104,7 +117,7 @@ public class Renderer {
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
 
-        System.out.println(currentControlMode);
+        System.out.println("Current Mode: " + currentControlMode + " | " + "Fractal mode: " + isFractalModeActive);
 
         // Perspective Switch
         if (per)
@@ -141,11 +154,14 @@ public class Renderer {
 //        Fractal.renderSierpinski(4, 10.0f, 10.0f, 10.0f, 0.0f, 10.0f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f});
 //        glTranslatef(20, 0, 0);
 //        Fractal.renderMenger(4, 10.0f, 10.0f, 10.0f, 0.0f, 10.0f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f});
-            //glCallList(fractalList);
+//        glCallList(fractalList);
 
-            // fractal.render();
-        for (int i = 0; i < ob; i++) {
+        for (Fractal fractal : fractals) {
+            fractal.render();
+        }
 
+        for (BaseObject object : basicObjects) {
+            object.render();
         }
 
         glPopMatrix();
@@ -206,52 +222,112 @@ public class Renderer {
                 switch (key) {
                     case GLFW_KEY_LEFT:
                         if(currentControlMode == ControlMode.TRANSLATION) {
-                            pyramid.move(translationStep, 0, 0);
+                            if (isFractalModeActive) {
+                                selectedFractal.move(translationStep, 0, 0);
+                            } else {
+                                selectedObject.move(translationStep, 0, 0);
+                            }
                         } else if(currentControlMode == ControlMode.ROTATION) {
-                            pyramid.rotate(rotationStep, 1f, 0f, 0f);
-                        } else if(currentControlMode == ControlMode.SELECTION) {
+                            if (isFractalModeActive) {
+                                selectedFractal.rotate(rotationStep, 1f, 0f, 0f);
+                            } else {
+                                selectedObject.rotate(rotationStep, 1f, 0f, 0f);
+                            }
+                        } else if(currentControlMode == ControlMode.OBJECT_SELECTION) {
                             selectedObjectIndex--;
+                        } else if(currentControlMode == ControlMode.FRACTAL_SELECTION) {
+                            selectedFractalIndex--;
                         }
                     break;
                     case GLFW_KEY_RIGHT:
                         if(currentControlMode == ControlMode.TRANSLATION) {
-                            pyramid.move(-translationStep, 0, 0);
+                            if (isFractalModeActive) {
+                                selectedFractal.move(-translationStep, 0, 0);
+                            } else {
+                                selectedObject.move(-translationStep, 0, 0);
+                            }
                         } else if(currentControlMode == ControlMode.ROTATION) {
-                            pyramid.rotate(-rotationStep, 1f, 0f, 0f);
-                        } else if(currentControlMode == ControlMode.SELECTION) {
+                            if (isFractalModeActive) {
+                                selectedFractal.rotate(-rotationStep, 1f, 0f, 0f);
+                            } else {
+                                selectedObject.rotate(-rotationStep, 1f, 0f, 0f);
+                            }
+                        } else if(currentControlMode == ControlMode.OBJECT_SELECTION) {
                             selectedObjectIndex++;
+                        } else if(currentControlMode == ControlMode.FRACTAL_SELECTION) {
+                            selectedFractalIndex++;
                         }
                     break;
                     case GLFW_KEY_KP_ADD:
                         if(currentControlMode == ControlMode.TRANSLATION) {
-                            pyramid.move(0, 0, translationStep);
+                            if (isFractalModeActive) {
+                                selectedFractal.move(0, 0, translationStep);
+                            } else {
+                                selectedObject.move(0, 0, translationStep);
+                            }
                         } else if(currentControlMode == ControlMode.ROTATION) {
-                            pyramid.rotate(rotationStep, 0f, 0f, 1f);
+                            if (isFractalModeActive) {
+                                selectedFractal.rotate(rotationStep, 0f, 0f, 1f);
+                            } else {
+                                selectedObject.rotate(rotationStep, 0f, 0f, 1f);
+                            }
                         }
                     break;
                     case GLFW_KEY_KP_SUBTRACT:
                         if(currentControlMode == ControlMode.TRANSLATION) {
-                            pyramid.move(0, 0, -translationStep);
+                            if (isFractalModeActive) {
+                                selectedFractal.move(0, 0, -translationStep);
+                            } else {
+                                selectedObject.move(0, 0, -translationStep);
+                            }
                         } else if(currentControlMode == ControlMode.ROTATION) {
-                            pyramid.rotate(-rotationStep, 0f, 0f, 1f);
+                            if (isFractalModeActive) {
+                                selectedFractal.rotate(-rotationStep, 0f, 0f, 1f);
+                            } else {
+                                selectedObject.rotate(-rotationStep, 0f, 0f, 1f);
+                            }
                         }
                     break;
                     case GLFW_KEY_UP:
                         if(currentControlMode == ControlMode.TRANSLATION) {
-                            pyramid.move(0, translationStep, 0);
+                            if (isFractalModeActive) {
+                                selectedFractal.move(0, translationStep, 0);
+                            } else {
+                                selectedObject.move(0, translationStep, 0);
+                            }
                         } else if(currentControlMode == ControlMode.ROTATION) {
-                            pyramid.rotate(rotationStep, 0f, 1f, 0f);
+                            if (isFractalModeActive) {
+                                selectedFractal.rotate(rotationStep, 0f, 1f, 0f);
+                            } else {
+                                selectedObject.rotate(rotationStep, 0f, 1f, 0f);
+                            }
                         } else if(currentControlMode == ControlMode.SCALE) {
-                            pyramid.scale(1 + scaleStep);
+                            if (isFractalModeActive) {
+                                selectedFractal.scale(1 + scaleStep);
+                            } else {
+                                selectedObject.scale(1 + scaleStep);
+                            }
                         }
                     break;
                     case GLFW_KEY_DOWN:
                         if(currentControlMode == ControlMode.TRANSLATION) {
-                            pyramid.move(0, -translationStep, 0);
+                            if (isFractalModeActive) {
+                                selectedFractal.move(0, -translationStep, 0);
+                            } else {
+                                selectedObject.move(0, -translationStep, 0);
+                            }
                         } else if(currentControlMode == ControlMode.ROTATION) {
-                            pyramid.rotate(-rotationStep, 0f, 1f, 0f);
+                            if (isFractalModeActive) {
+                                selectedFractal.rotate(-rotationStep, 0f, 1f, 0f);
+                            } else {
+                                selectedObject.rotate(-rotationStep, 0f, 1f, 0f);
+                            }
                         } else if(currentControlMode == ControlMode.SCALE) {
-                            pyramid.scale(1 - scaleStep);
+                            if (isFractalModeActive) {
+                                selectedFractal.scale(1 - scaleStep);
+                            } else {
+                                selectedObject.scale(1 - scaleStep);
+                            }
                         }
                     break;
                     case GLFW_KEY_T:
@@ -266,8 +342,14 @@ public class Renderer {
                     case GLFW_KEY_C:
                         currentControlMode = ControlMode.NONE;
                     break;
-                    case GLFW_KEY_V:
-                        currentControlMode = ControlMode.SELECTION;
+                    case GLFW_KEY_O:
+                        currentControlMode = ControlMode.OBJECT_SELECTION;
+                        isFractalModeActive = false;
+                    break;
+                    case GLFW_KEY_F:
+                        currentControlMode = ControlMode.FRACTAL_SELECTION;
+                        isFractalModeActive = true;
+                    break;
                 }
             break;
             // Holding
@@ -275,48 +357,112 @@ public class Renderer {
                 switch (key) {
                     case GLFW_KEY_LEFT:
                         if(currentControlMode == ControlMode.TRANSLATION) {
-                            pyramid.move(translationStep, 0, 0);
+                            if (isFractalModeActive) {
+                                selectedFractal.move(translationStep, 0, 0);
+                            } else {
+                                selectedObject.move(translationStep, 0, 0);
+                            }
                         } else if(currentControlMode == ControlMode.ROTATION) {
-                            pyramid.rotate(rotationStep, 1f, 0f, 0f);
+                            if (isFractalModeActive) {
+                                selectedFractal.rotate(rotationStep, 1f, 0f, 0f);
+                            } else {
+                                selectedObject.rotate(rotationStep, 1f, 0f, 0f);
+                            }
+                        } else if(currentControlMode == ControlMode.OBJECT_SELECTION) {
+                            selectedObjectIndex--;
+                        } else if(currentControlMode == ControlMode.FRACTAL_SELECTION) {
+                            selectedFractalIndex--;
                         }
                     break;
                     case GLFW_KEY_RIGHT:
                         if(currentControlMode == ControlMode.TRANSLATION) {
-                            pyramid.move(-translationStep, 0, 0);
+                            if (isFractalModeActive) {
+                                selectedFractal.move(-translationStep, 0, 0);
+                            } else {
+                                selectedObject.move(-translationStep, 0, 0);
+                            }
                         } else if(currentControlMode == ControlMode.ROTATION) {
-                            pyramid.rotate(-rotationStep, 1f, 0f, 0f);
+                            if (isFractalModeActive) {
+                                selectedFractal.rotate(-rotationStep, 1f, 0f, 0f);
+                            } else {
+                                selectedObject.rotate(-rotationStep, 1f, 0f, 0f);
+                            }
+                        } else if(currentControlMode == ControlMode.OBJECT_SELECTION) {
+                            selectedObjectIndex++;
+                        } else if(currentControlMode == ControlMode.FRACTAL_SELECTION) {
+                            selectedFractalIndex++;
                         }
                     break;
                     case GLFW_KEY_KP_ADD:
                         if(currentControlMode == ControlMode.TRANSLATION) {
-                            pyramid.move(0, 0, translationStep);
+                            if (isFractalModeActive) {
+                                selectedFractal.move(0, 0, translationStep);
+                            } else {
+                                selectedObject.move(0, 0, translationStep);
+                            }
                         } else if(currentControlMode == ControlMode.ROTATION) {
-                            pyramid.rotate(rotationStep, 0f, 0f, 1f);
+                            if (isFractalModeActive) {
+                                selectedFractal.rotate(rotationStep, 0f, 0f, 1f);
+                            } else {
+                                selectedObject.rotate(rotationStep, 0f, 0f, 1f);
+                            }
                         }
                     break;
                     case GLFW_KEY_KP_SUBTRACT:
                         if(currentControlMode == ControlMode.TRANSLATION) {
-                            pyramid.move(0, 0, -translationStep);
+                            if (isFractalModeActive) {
+                                selectedFractal.move(0, 0, -translationStep);
+                            } else {
+                                selectedObject.move(0, 0, -translationStep);
+                            }
                         } else if(currentControlMode == ControlMode.ROTATION) {
-                            pyramid.rotate(-rotationStep, 0f, 0f, 1f);
+                            if (isFractalModeActive) {
+                                selectedFractal.rotate(-rotationStep, 0f, 0f, 1f);
+                            } else {
+                                selectedObject.rotate(-rotationStep, 0f, 0f, 1f);
+                            }
                         }
                     break;
                     case GLFW_KEY_UP:
                         if(currentControlMode == ControlMode.TRANSLATION) {
-                            pyramid.move(0, translationStep, 0);
+                            if (isFractalModeActive) {
+                                selectedFractal.move(0, translationStep, 0);
+                            } else {
+                                selectedObject.move(0, translationStep, 0);
+                            }
                         } else if(currentControlMode == ControlMode.ROTATION) {
-                            pyramid.rotate(rotationStep, 0f, 1f, 0f);
+                            if (isFractalModeActive) {
+                                selectedFractal.rotate(rotationStep, 0f, 1f, 0f);
+                            } else {
+                                selectedObject.rotate(rotationStep, 0f, 1f, 0f);
+                            }
                         } else if(currentControlMode == ControlMode.SCALE) {
-                            pyramid.scale(1 + scaleStep);
+                            if (isFractalModeActive) {
+                                selectedFractal.scale(1 + scaleStep);
+                            } else {
+                                selectedObject.scale(1 + scaleStep);
+                            }
                         }
                     break;
                     case GLFW_KEY_DOWN:
                         if(currentControlMode == ControlMode.TRANSLATION) {
-                            pyramid.move(0, -translationStep, 0);
+                            if (isFractalModeActive) {
+                                selectedFractal.move(0, -translationStep, 0);
+                            } else {
+                                selectedObject.move(0, -translationStep, 0);
+                            }
                         } else if(currentControlMode == ControlMode.ROTATION) {
-                            pyramid.rotate(-rotationStep, 0f, 1f, 0f);
+                            if (isFractalModeActive) {
+                                selectedFractal.rotate(-rotationStep, 0f, 1f, 0f);
+                            } else {
+                                selectedObject.rotate(-rotationStep, 0f, 1f, 0f);
+                            }
                         } else if(currentControlMode == ControlMode.SCALE) {
-                            pyramid.scale(1 - scaleStep);
+                            if (isFractalModeActive) {
+                                selectedFractal.scale(1 - scaleStep);
+                            } else {
+                                selectedObject.scale(1 - scaleStep);
+                            }
                         }
                     break;
                 }

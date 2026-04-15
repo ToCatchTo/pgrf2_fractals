@@ -6,7 +6,7 @@ import java.util.ArrayList;
 
 import static org.lwjgl.opengl.GL11.*;
 
-public class Fractal {
+public class Fractal extends BaseObject {
     private int depth;
     private float width, length, height;
     private float baseZ;
@@ -35,34 +35,48 @@ public class Fractal {
         this.colorTop = colorTop;
         this.colorBottom = colorBottom;
         this.type = type;
+
+        generate();
     }
 
-    public void render() {
-        switch (type) {
-            case SIERPINSKI_PYRAMID:
-                renderSierpinski(depth, width, length, height, baseZ, gradientLevel, colorTop, colorBottom);
-                break;
-            case MENGER_SPONGE:
-                renderMenger(depth, width, length, height, baseZ, gradientLevel, colorTop, colorBottom);
-                break;
+    private void generate() {
+        if (type == FractalType.SIERPINSKI_PYRAMID) {
+            generateSierpinski(depth, width, length, height, baseZ, gradientLevel, colorTop, colorBottom, 0, 0, 0);
+        } else if (type == FractalType.MENGER_SPONGE) {
+            generateMenger(depth, width, length, height, baseZ, gradientLevel, colorTop, colorBottom, 0, 0, 0);
         }
     }
 
-    private void renderSierpinski(int depth, float width, float length, float height, float baseZ, float gradientLevel, float[] colorTop, float[] colorBottom) {
+    @Override
+    public void render() {
+        glPushMatrix();
+
+        applyTransformations();
+
+        // Jednoduše nakreslíme všechny objekty, které jsme si při startu uložili
+        for (BaseObject object : objectList) {
+            object.render();
+        }
+
+        glPopMatrix();
+    }
+
+    private void generateSierpinski(int depth, float width, float length, float height, float baseZ, float gradientLevel, float[] colorTop, float[] colorBottom, float x, float y, float z) {
         // Ending condition
         if (depth == 0) {
             // Checks for color difference
             if(colorTop == colorBottom || gradientLevel == 0) {
                 Pyramid pyramid = new Pyramid(width, length, height, colorTop, colorTop, this);
                 objectList.add(pyramid);
-                pyramid.render();
             } else {
                 // Calculate interpolated color based on the current Z level
                 float[] bottomColorInterpolated = lerp(colorBottom, colorTop, baseZ / gradientLevel);
                 float[] topColorInterpolated = lerp(colorBottom, colorTop, (baseZ + height) / gradientLevel);
+
                 Pyramid pyramid = new Pyramid(width, length, height, topColorInterpolated, bottomColorInterpolated, this);
+
+                pyramid.move(x, y, z);
                 objectList.add(pyramid);
-                pyramid.render();
             }
 
             return;
@@ -77,42 +91,30 @@ public class Fractal {
         float offW = nW / 2.0f;
         float offL = nL / 2.0f;
 
-        // Apex pyramid
-        glPushMatrix();
-        glTranslatef(0, 0, nH);
-        renderSierpinski(depth - 1, nW, nL, nH, baseZ + nH, gradientLevel, colorBottom, colorTop);
-        glPopMatrix();
+        // Horní pyramida - k Z přičteme nH, X a Y zůstávají
+        generateSierpinski(depth - 1, nW, nL, nH, baseZ + nH, gradientLevel, colorTop, colorBottom, x, y, z + nH);
 
-        // Positions for bottom pyramids
-        float[][] pos = {
-                {-offW, -offL},
-                { offW, -offL},
-                { offW,  offL},
-                {-offW,  offL}
-        };
-
-        // Bottom pyramids
-        for (float[] p : pos) {
-            glPushMatrix();
-            glTranslatef(p[0], p[1], 0);
-            renderSierpinski(depth - 1, nW, nL, nH, baseZ, gradientLevel, colorBottom, colorTop);
-            glPopMatrix();
-        }
+        // Spodní 4 pyramidy - k X a Y musíme PŘIČÍST offsety
+        generateSierpinski(depth - 1, nW, nL, nH, baseZ, gradientLevel, colorTop, colorBottom, x - offW, y - offL, z);
+        generateSierpinski(depth - 1, nW, nL, nH, baseZ, gradientLevel, colorTop, colorBottom, x + offW, y - offL, z);
+        generateSierpinski(depth - 1, nW, nL, nH, baseZ, gradientLevel, colorTop, colorBottom, x + offW, y + offL, z);
+        generateSierpinski(depth - 1, nW, nL, nH, baseZ, gradientLevel, colorTop, colorBottom, x - offW, y + offL, z);
     }
 
-    private void renderMenger(int depth, float width, float length, float height, float baseZ, float gradientLevel, float[] colorTop, float[] colorBottom) {
+    private void generateMenger(int depth, float width, float length, float height, float baseZ, float gradientLevel, float[] colorTop, float[] colorBottom, float x, float y, float z) {
         if (depth == 0) {
             if(colorTop == colorBottom || gradientLevel == 0) {
                 Cube cube = new Cube(width, length, height, colorTop, colorBottom, this);
                 objectList.add(cube);
-                cube.render();
             } else {
                 // Calculate interpolated color based on the current Z level
                 float[] bottomColorInterpolated = lerp(colorBottom, colorTop, baseZ / gradientLevel);
                 float[] topColorInterpolated = lerp(colorBottom, colorTop, (baseZ + height) / gradientLevel);
+
                 Cube cube = new Cube(width, length, height, topColorInterpolated, bottomColorInterpolated, this);
+
+                cube.move(x, y, z);
                 objectList.add(cube);
-                cube.render();
             }
 
             return;
@@ -123,21 +125,33 @@ public class Fractal {
         float nH = height / 3.0f;
 
         // Iterate through a 3x3x3 grid
-        for (int x = -1; x <= 1; x++) {
-            for (int y = -1; y <= 1; y++) {
-                for (int z = -1; z <= 1; z++) {
+        for (int i = -1; i <= 1; i++) {
+            for (int j = -1; j <= 1; j++) {
+                for (int k = -1; k <= 1; k++) {
 
-                    // Logic to skip the center cubes of each face and the core
-                    int absX = Math.abs(x);
-                    int absY = Math.abs(y);
-                    int absZ = Math.abs(z);
+                    // LOGIKA VYNECHÁNÍ STŘEDŮ (Mengerova houba)
+                    // Kostka se vykreslí pouze pokud jsou alespoň dvě souřadnice nenulové
+                    // (vynecháváme absolutní střed a středy všech stěn)
+                    int absI = Math.abs(i);
+                    int absJ = Math.abs(j);
+                    int absK = Math.abs(k);
 
-                    if (absX + absY + absZ > 1) {
-                        glPushMatrix();
-                        glTranslatef(x * nW, y * nL, z * nH);
-                        // baseZ is adjusted by the actual Z displacement
-                        renderMenger(depth - 1, nW, nL, nH, baseZ + (z * nH), gradientLevel, colorTop, colorBottom);
-                        glPopMatrix();
+                    if (absI + absJ + absK > 1) {
+                        // Matematický výpočet nové pozice pro vnořenou kostku
+                        float newX = x + (i * nW);
+                        float newY = y + (j * nL);
+                        float newZ = z + (k * nH);
+
+                        // Rekurzivní volání pro hlubší úroveň
+                        generateMenger(
+                                depth - 1,
+                                nW, nL, nH,
+                                baseZ + (k * nH),
+                                gradientLevel,
+                                colorTop,
+                                colorBottom,
+                                newX, newY, newZ
+                        );
                     }
                 }
             }
@@ -156,5 +170,35 @@ public class Fractal {
 
     public ArrayList<BaseObject> getObjectList() {
         return objectList;
+    }
+
+    // Translation logic
+    @Override
+    public void move(float x, float y, float z) {
+        this.posX += x;
+        this.posY += y;
+        this.posZ += z;
+    }
+
+    // Rotation logic
+    @Override
+    public void rotate(float angle, float x, float y, float z) {
+        this.rotAngle += angle;
+        this.rotX = x;
+        this.rotY = y;
+        this.rotZ = z;
+    }
+
+    // Scaling logic
+    @Override
+    public void scale(float s) {
+        this.scaleXYZ *= s;
+    }
+
+    @Override
+    public void applyTransformations() {
+        glTranslatef(this.posX, this.posY, this.posZ);
+        glRotatef(this.rotAngle, this.rotX, this.rotY, this.rotZ);
+        glScalef(this.scaleXYZ, this.scaleXYZ, this.scaleXYZ);
     }
 }
