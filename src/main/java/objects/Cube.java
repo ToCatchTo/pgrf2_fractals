@@ -24,49 +24,67 @@ public class Cube extends BaseObject {
     @Override
     public void render() {
         glPushMatrix();
-
-        float halfWidth = width / 2.0f;
-        float halfLength = length / 2.0f;
-        float halfHeight = height / 2.0f;
-
         applyTransformations();
 
-        glBegin(GL_QUADS);
-        // Top
-        glColor3fv(colorTop);
-        glTexCoord2f(0.0f, 0.0f); glVertex3f(-halfWidth, -halfLength, halfHeight);
-        glTexCoord2f(1.0f, 0.0f); glVertex3f(halfWidth, -halfLength, halfHeight);
-        glTexCoord2f(1.0f, 1.0f); glVertex3f(halfWidth, halfLength, halfHeight);
-        glTexCoord2f(0.0f, 1.0f); glVertex3f(-halfWidth, halfLength, halfHeight);
-        // Bottom
-        glColor3fv(colorBottom);
-        glTexCoord2f(0.0f, 0.0f); glVertex3f(-halfWidth, -halfLength, -halfHeight);
-        glTexCoord2f(1.0f, 0.0f); glVertex3f(halfWidth, -halfLength, -halfHeight);
-        glTexCoord2f(1.0f, 1.0f); glVertex3f(halfWidth, halfLength, -halfHeight);
-        glTexCoord2f(0.0f, 1.0f); glVertex3f(-halfWidth, halfLength, -halfHeight);
-        // Front
-        glColor3fv(colorBottom); glTexCoord2f(0.0f, 0.0f); glVertex3f(-halfWidth, -halfLength, -halfHeight);
-        glColor3fv(colorBottom); glTexCoord2f(1.0f, 0.0f); glVertex3f( halfWidth, -halfLength, -halfHeight);
-        glColor3fv(colorTop); glTexCoord2f(1.0f, 1.0f); glVertex3f( halfWidth, -halfLength,  halfHeight);
-        glColor3fv(colorTop); glTexCoord2f(0.0f, 1.0f); glVertex3f(-halfWidth, -halfLength,  halfHeight);
-        // Back
-        glColor3fv(colorBottom); glTexCoord2f(0.0f, 0.0f); glVertex3f( halfWidth,  halfLength, -halfHeight);
-        glColor3fv(colorBottom); glTexCoord2f(1.0f, 0.0f); glVertex3f(-halfWidth,  halfLength, -halfHeight);
-        glColor3fv(colorTop); glTexCoord2f(1.0f, 1.0f); glVertex3f(-halfWidth,  halfLength,  halfHeight);
-        glColor3fv(colorTop); glTexCoord2f(0.0f, 1.0f); glVertex3f( halfWidth,  halfLength,  halfHeight);
-        // Left
-        glColor3fv(colorBottom); glTexCoord2f(0.0f, 0.0f); glVertex3f(-halfWidth,  halfLength, -halfHeight);
-        glColor3fv(colorBottom); glTexCoord2f(1.0f, 0.0f); glVertex3f(-halfWidth, -halfLength, -halfHeight);
-        glColor3fv(colorTop); glTexCoord2f(1.0f, 1.0f); glVertex3f(-halfWidth, -halfLength,  halfHeight);
-        glColor3fv(colorTop); glTexCoord2f(0.0f, 1.0f); glVertex3f(-halfWidth,  halfLength,  halfHeight);
-        // Right
-        glColor3fv(colorBottom); glTexCoord2f(0.0f, 0.0f); glVertex3f( halfWidth, -halfLength, -halfHeight);
-        glColor3fv(colorBottom); glTexCoord2f(1.0f, 0.0f); glVertex3f( halfWidth,  halfLength, -halfHeight);
-        glColor3fv(colorTop); glTexCoord2f(1.0f, 1.0f); glVertex3f( halfWidth,  halfLength,  halfHeight);
-        glColor3fv(colorTop); glTexCoord2f(0.0f, 1.0f); glVertex3f( halfWidth, -halfLength,  halfHeight);
-        glEnd();
+        // 1. Vykreslení plné kostky
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        drawGeometry(this.colorTop, this.colorBottom);
+
+        // 2. Vykreslení žlutého výběru
+        if (this.isSelected()) {
+            glPushAttrib(GL_ALL_ATTRIB_BITS);
+            glDisable(GL_TEXTURE_2D); // Zajištění čisté barvy bez textury
+
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            glLineWidth(3.0f);
+
+            // Posun hran mírně před plochu, aby nedocházelo k problikávání (Z-fighting)
+            glEnable(GL_POLYGON_OFFSET_LINE);
+            glPolygonOffset(-1.0f, -1.0f);
+
+            float[] yellow = {1.0f, 1.0f, 0.0f};
+            drawGeometry(yellow, yellow);
+
+            glPopAttrib();
+        }
 
         glPopMatrix();
+    }
+
+    private void drawGeometry(float[] colorT, float[] colorB) {
+        float hW = width / 2.0f;
+        float hL = length / 2.0f;
+        float hH = height; // Předpokládáme výšku od nuly nahoru jako u pyramidy
+
+        glBegin(GL_QUADS);
+
+        // Horní stěna
+        glColor3fv(colorT);
+        glVertex3f(-hW, hL, hH);  glVertex3f(hW, hL, hH);
+        glVertex3f(hW, -hL, hH); glVertex3f(-hW, -hL, hH);
+
+        // Spodní stěna
+        glColor3fv(colorB);
+        glVertex3f(-hW, hL, 0);   glVertex3f(hW, hL, 0);
+        glVertex3f(hW, -hL, 0);  glVertex3f(-hW, -hL, 0);
+
+        // Přední stěna
+        glColor3fv(colorB); glVertex3f(-hW, -hL, 0);  glVertex3f(hW, -hL, 0);
+        glColor3fv(colorT); glVertex3f(hW, -hL, hH); glVertex3f(-hW, -hL, hH);
+
+        // Zadní stěna
+        glColor3fv(colorB); glVertex3f(-hW, hL, 0);   glVertex3f(hW, hL, 0);
+        glColor3fv(colorT); glVertex3f(hW, hL, hH);  glVertex3f(-hW, hL, hH);
+
+        // Levá stěna
+        glColor3fv(colorB); glVertex3f(-hW, -hL, 0);  glVertex3f(-hW, hL, 0);
+        glColor3fv(colorT); glVertex3f(-hW, hL, hH); glVertex3f(-hW, -hL, hH);
+
+        // Pravá stěna
+        glColor3fv(colorB); glVertex3f(hW, -hL, 0);   glVertex3f(hW, hL, 0);
+        glColor3fv(colorT); glVertex3f(hW, hL, hH);  glVertex3f(hW, -hL, hH);
+
+        glEnd();
     }
 
     // Translation logic

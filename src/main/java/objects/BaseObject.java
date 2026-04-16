@@ -6,6 +6,7 @@ public abstract class BaseObject {
     protected float posX = 0, posY = 0, posZ = 0;
     protected float rotAngle = 0, rotX = 0, rotY = 0, rotZ = 1;
     protected float scaleXYZ = 1;
+    protected boolean isSelected = false;
 
     public abstract void move(float x, float y, float z);
 
@@ -16,4 +17,12 @@ public abstract class BaseObject {
     public abstract void render();
 
     protected abstract void applyTransformations();
+
+    public boolean isSelected() {
+        return isSelected;
+    }
+
+    public void setSelected(boolean selected) {
+        isSelected = selected;
+    }
 }

@@ -59,15 +59,7 @@ public class Renderer {
 
         camera = new Camera();
 
-        Pyramid pyramid = new Pyramid(10.0f, 10.0f, 10.0f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f});
-        basicObjects.add(pyramid);
-        pyramid.move(20f, 0f, 0f);
-
-//        Fractal sierpinskiPyramid = new Fractal(4, 10f, 10f, 10f, 0f, 10f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f}, FractalType.SIERPINSKI_PYRAMID);
-//        fractals.add(sierpinskiPyramid);
-
-        Fractal mengerSponge = new Fractal(2, 10f, 10f, 10f, 0f, 10f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f}, FractalType.MENGER_SPONGE);
-        fractals.add(mengerSponge);
+        renderTestScene();
 
         if(!fractals.isEmpty()) {
             selectedFractal = fractals.get(selectedFractalIndex);
@@ -75,6 +67,7 @@ public class Renderer {
 
         if(!basicObjects.isEmpty()) {
             selectedObject = basicObjects.get(selectedObjectIndex);
+            selectedObject.setSelected(true);
         }
 
         // Create a list that is located directly at GPUs memory for better performance
@@ -117,7 +110,7 @@ public class Renderer {
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
 
-        System.out.println("Current Mode: " + currentControlMode + " | " + "Fractal mode: " + isFractalModeActive);
+        System.out.println("Current Mode: " + currentControlMode + " | " + "Fractal mode: " + isFractalModeActive + " | " + "Selected object: " + selectedObject + " | " + "Selected fractal: " + selectedFractal);
 
         // Perspective Switch
         if (per)
@@ -235,8 +228,24 @@ public class Renderer {
                             }
                         } else if(currentControlMode == ControlMode.OBJECT_SELECTION) {
                             selectedObjectIndex--;
+
+                            if(selectedObjectIndex < 0) {
+                                selectedObjectIndex = basicObjects.size() - 1;
+                            }
+
+                            selectedObject.setSelected(false);
+                            selectedObject = basicObjects.get(selectedObjectIndex);
+                            selectedObject.setSelected(true);
                         } else if(currentControlMode == ControlMode.FRACTAL_SELECTION) {
                             selectedFractalIndex--;
+
+                            if(selectedFractalIndex < 0) {
+                                selectedFractalIndex = fractals.size() - 1;
+                            }
+
+                            selectedFractal.setSelected(false);
+                            selectedFractal = fractals.get(selectedFractalIndex);
+                            selectedFractal.setSelected(true);
                         }
                     break;
                     case GLFW_KEY_RIGHT:
@@ -254,8 +263,25 @@ public class Renderer {
                             }
                         } else if(currentControlMode == ControlMode.OBJECT_SELECTION) {
                             selectedObjectIndex++;
+
+                            if(selectedObjectIndex > basicObjects.size() - 1) {
+                                selectedObjectIndex = 0;
+                            }
+
+                            selectedObject.setSelected(false);
+                            selectedObject = basicObjects.get(selectedObjectIndex);
+                            selectedObject.setSelected(true);
+
                         } else if(currentControlMode == ControlMode.FRACTAL_SELECTION) {
                             selectedFractalIndex++;
+
+                            if(selectedFractalIndex > fractals.size() - 1) {
+                                selectedFractalIndex = 0;
+                            }
+
+                            selectedFractal.setSelected(false);
+                            selectedFractal = fractals.get(selectedFractalIndex);
+                            selectedFractal.setSelected(true);
                         }
                     break;
                     case GLFW_KEY_KP_ADD:
@@ -343,12 +369,24 @@ public class Renderer {
                         currentControlMode = ControlMode.NONE;
                     break;
                     case GLFW_KEY_O:
-                        currentControlMode = ControlMode.OBJECT_SELECTION;
-                        isFractalModeActive = false;
+                        if(currentControlMode != ControlMode.OBJECT_SELECTION) {
+                            currentControlMode = ControlMode.OBJECT_SELECTION;
+                            if(selectedFractal != null) selectedFractal.setSelected(false);
+                            selectedFractal = null;
+                            selectedObject = basicObjects.get(selectedObjectIndex);
+                            selectedObject.setSelected(true);
+                            isFractalModeActive = false;
+                        }
                     break;
                     case GLFW_KEY_F:
-                        currentControlMode = ControlMode.FRACTAL_SELECTION;
-                        isFractalModeActive = true;
+                        if(currentControlMode != ControlMode.FRACTAL_SELECTION) {
+                            currentControlMode = ControlMode.FRACTAL_SELECTION;
+                            if(selectedObject != null) selectedObject.setSelected(false);
+                            selectedObject = null;
+                            selectedFractal = fractals.get(selectedFractalIndex);
+                            selectedFractal.setSelected(true);
+                            isFractalModeActive = true;
+                        }
                     break;
                 }
             break;
@@ -486,5 +524,22 @@ public class Renderer {
         }
         lastMouseX = x;
         lastMouseY = y;
+    }
+
+    public void renderTestScene() {
+        Cube cube = new Cube(10.0f, 10.0f, 10.0f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f});
+        basicObjects.add(cube);
+
+        Pyramid pyramid = new Pyramid(10.0f, 10.0f, 10.0f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f});
+        basicObjects.add(pyramid);
+        pyramid.move(20f, 0f, 0f);
+
+        Fractal sierpinskiPyramid = new Fractal(4, 10f, 10f, 10f, 0f, 10f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f}, FractalType.SIERPINSKI_PYRAMID);
+        fractals.add(sierpinskiPyramid);
+        sierpinskiPyramid.move(40f, 0f, 0f);
+
+        Fractal mengerSponge = new Fractal(2, 10f, 10f, 10f, 0f, 10f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f}, FractalType.MENGER_SPONGE);
+        fractals.add(mengerSponge);
+        mengerSponge.move(60f, 0f, 0f);
     }
 }

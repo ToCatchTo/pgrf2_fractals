@@ -24,42 +24,65 @@ public class Pyramid extends BaseObject {
     @Override
     public void render() {
         glPushMatrix();
-
         applyTransformations();
 
-        // Divide for better handling
+        // 1. Vykreslení plného objektu (Standardní barvy)
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        drawGeometry(this.colorTop, this.colorBottom);
+
+        // 2. Vykreslení žlutého zvýraznění (pouze pokud je objekt vybrán)
+        if (this.isSelected()) {
+            glPushAttrib(GL_ALL_ATTRIB_BITS); // Uložíme aktuální nastavení OpenGL
+
+            // Přepneme na vykreslování pouze hran (wireframe)
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            glLineWidth(2.5f); // Nastavení tloušťky čáry výběru
+
+            // Prevence Z-fightingu: posuneme čáry kousek před plochy, aby neproblikávaly
+            glEnable(GL_POLYGON_OFFSET_LINE);
+            glPolygonOffset(-1.0f, -1.0f);
+
+            // Nastavíme jasně žlutou barvu pro všechny vrcholy
+            float[] yellow = {1.0f, 1.0f, 0.0f};
+            drawGeometry(yellow, yellow);
+
+            glPopAttrib(); // Vrátíme původní nastavení OpenGL (barvy, polygonMode atd.)
+        }
+
+        glPopMatrix();
+    }
+
+    private void drawGeometry(float[] colorT, float[] colorB) {
         float halfWidth = width / 2.0f;
         float halfLength = length / 2.0f;
 
         glBegin(GL_TRIANGLES);
-            // Front
-            glColor3fv(colorTop);    glTexCoord2f(0.5f, 1.0f); glVertex3f(0, 0, height);
-            glColor3fv(colorBottom); glTexCoord2f(1.0f, 0.0f); glVertex3f(halfWidth, -halfLength, 0);
-            glColor3fv(colorBottom); glTexCoord2f(0.0f, 0.0f); glVertex3f(-halfWidth, -halfLength, 0);
-            // Right
-            glColor3fv(colorTop);    glTexCoord2f(0.5f, 1.0f); glVertex3f(0, 0, height);
-            glColor3fv(colorBottom); glTexCoord2f(1.0f, 0.0f); glVertex3f(halfWidth, halfLength, 0);
-            glColor3fv(colorBottom); glTexCoord2f(0.0f, 0.0f); glVertex3f(halfWidth, -halfLength, 0);
-            // Back
-            glColor3fv(colorTop);    glTexCoord2f(0.5f, 1.0f); glVertex3f(0, 0, height);
-            glColor3fv(colorBottom); glTexCoord2f(1.0f, 0.0f); glVertex3f(-halfWidth, halfLength, 0);
-            glColor3fv(colorBottom); glTexCoord2f(0.0f, 0.0f); glVertex3f(halfWidth, halfLength, 0);
-            // Left
-            glColor3fv(colorTop);    glTexCoord2f(0.5f, 1.0f); glVertex3f(0, 0, height);
-            glColor3fv(colorBottom); glTexCoord2f(1.0f, 0.0f); glVertex3f(-halfWidth, -halfLength, 0);
-            glColor3fv(colorBottom); glTexCoord2f(0.0f, 0.0f); glVertex3f(-halfWidth, halfLength, 0);
+        // Front
+        glColor3fv(colorT);    glTexCoord2f(0.5f, 1.0f); glVertex3f(0, 0, height);
+        glColor3fv(colorB);    glTexCoord2f(1.0f, 0.0f); glVertex3f(halfWidth, -halfLength, 0);
+        glColor3fv(colorB);    glTexCoord2f(0.0f, 0.0f); glVertex3f(-halfWidth, -halfLength, 0);
+        // Right
+        glColor3fv(colorT);    glTexCoord2f(0.5f, 1.0f); glVertex3f(0, 0, height);
+        glColor3fv(colorB);    glTexCoord2f(1.0f, 0.0f); glVertex3f(halfWidth, halfLength, 0);
+        glColor3fv(colorB);    glTexCoord2f(0.0f, 0.0f); glVertex3f(halfWidth, -halfLength, 0);
+        // Back
+        glColor3fv(colorT);    glTexCoord2f(0.5f, 1.0f); glVertex3f(0, 0, height);
+        glColor3fv(colorB);    glTexCoord2f(1.0f, 0.0f); glVertex3f(-halfWidth, halfLength, 0);
+        glColor3fv(colorB);    glTexCoord2f(0.0f, 0.0f); glVertex3f(halfWidth, halfLength, 0);
+        // Left
+        glColor3fv(colorT);    glTexCoord2f(0.5f, 1.0f); glVertex3f(0, 0, height);
+        glColor3fv(colorB);    glTexCoord2f(1.0f, 0.0f); glVertex3f(-halfWidth, -halfLength, 0);
+        glColor3fv(colorB);    glTexCoord2f(0.0f, 0.0f); glVertex3f(-halfWidth, halfLength, 0);
         glEnd();
 
-        // Base
         glBegin(GL_QUADS);
-            glColor3fv(colorBottom);
-            glTexCoord2f(0.0f, 0.0f); glVertex3f(-halfWidth, -halfLength, 0);
-            glTexCoord2f(1.0f, 0.0f); glVertex3f(halfWidth, -halfLength, 0);
-            glTexCoord2f(1.0f, 1.0f); glVertex3f(halfWidth, halfLength, 0);
-            glTexCoord2f(0.0f, 1.0f); glVertex3f(-halfWidth, halfLength, 0);
+        // Base
+        glColor3fv(colorB);
+        glTexCoord2f(0.0f, 0.0f); glVertex3f(-halfWidth, -halfLength, 0);
+        glTexCoord2f(1.0f, 0.0f); glVertex3f(halfWidth, -halfLength, 0);
+        glTexCoord2f(1.0f, 1.0f); glVertex3f(halfWidth, halfLength, 0);
+        glTexCoord2f(0.0f, 1.0f); glVertex3f(-halfWidth, halfLength, 0);
         glEnd();
-
-        glPopMatrix();
     }
 
     // Translation logic

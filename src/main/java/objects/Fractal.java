@@ -58,6 +58,10 @@ public class Fractal extends BaseObject {
             object.render();
         }
 
+        if (this.isSelected()) {
+            drawBoundingShape();
+        }
+
         glPopMatrix();
     }
 
@@ -128,25 +132,21 @@ public class Fractal extends BaseObject {
         for (int i = -1; i <= 1; i++) {
             for (int j = -1; j <= 1; j++) {
                 for (int k = -1; k <= 1; k++) {
-
-                    // LOGIKA VYNECHÁNÍ STŘEDŮ (Mengerova houba)
-                    // Kostka se vykreslí pouze pokud jsou alespoň dvě souřadnice nenulové
-                    // (vynecháváme absolutní střed a středy všech stěn)
                     int absI = Math.abs(i);
                     int absJ = Math.abs(j);
                     int absK = Math.abs(k);
 
                     if (absI + absJ + absK > 1) {
-                        // Matematický výpočet nové pozice pro vnořenou kostku
                         float newX = x + (i * nW);
                         float newY = y + (j * nL);
-                        float newZ = z + (k * nH);
 
-                        // Rekurzivní volání pro hlubší úroveň
+                        // OPRAVA ZDE: (k + 1) zajistí, že spodní vrstva začne na 0
+                        float newZ = z + ((k + 1) * nH);
+
                         generateMenger(
                                 depth - 1,
                                 nW, nL, nH,
-                                baseZ + (k * nH),
+                                baseZ + ((k + 1) * nH), // Tady také musíme barvy posunout
                                 gradientLevel,
                                 colorTop,
                                 colorBottom,
@@ -156,6 +156,56 @@ public class Fractal extends BaseObject {
                 }
             }
         }
+    }
+
+    private void drawBoundingShape() {
+        glPushAttrib(GL_ALL_ATTRIB_BITS);
+        glDisable(GL_TEXTURE_2D);
+
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        glLineWidth(3.0f);
+
+        // Použijeme trochu větší offset, aby obrys zaručeně "přebil" všechny objekty na hranách
+        glEnable(GL_POLYGON_OFFSET_LINE);
+        glPolygonOffset(-2.0f, -2.0f);
+
+        glColor3f(1.0f, 1.0f, 0.0f); // Žlutá barva
+
+        float hW = this.width / 2.0f;
+        float hL = this.length / 2.0f;
+        float h = this.height;
+
+        if (this.type == FractalType.MENGER_SPONGE) {
+            // Obrys pro houbu = velká kostka
+            glBegin(GL_QUADS);
+            // Horní a spodní
+            glVertex3f(-hW, hL, h);  glVertex3f(hW, hL, h);  glVertex3f(hW, -hL, h); glVertex3f(-hW, -hL, h);
+            glVertex3f(-hW, hL, 0);  glVertex3f(hW, hL, 0);  glVertex3f(hW, -hL, 0); glVertex3f(-hW, -hL, 0);
+            // Přední a zadní
+            glVertex3f(-hW, -hL, 0); glVertex3f(hW, -hL, 0); glVertex3f(hW, -hL, h); glVertex3f(-hW, -hL, h);
+            glVertex3f(-hW, hL, 0);  glVertex3f(hW, hL, 0);  glVertex3f(hW, hL, h);  glVertex3f(-hW, hL, h);
+            // Levá a pravá
+            glVertex3f(-hW, -hL, 0); glVertex3f(-hW, hL, 0); glVertex3f(-hW, hL, h); glVertex3f(-hW, -hL, h);
+            glVertex3f(hW, -hL, 0);  glVertex3f(hW, hL, 0);  glVertex3f(hW, hL, h);  glVertex3f(hW, -hL, h);
+            glEnd();
+        }
+        else if (this.type == FractalType.SIERPINSKI_PYRAMID) {
+            // Obrys pro Sierpinskeho = velká pyramida
+            glBegin(GL_TRIANGLES);
+            // 4 stěny pyramidy
+            glVertex3f(0, 0, h); glVertex3f(hW, -hL, 0); glVertex3f(-hW, -hL, 0); // Přední
+            glVertex3f(0, 0, h); glVertex3f(hW, hL, 0);  glVertex3f(hW, -hL, 0);  // Pravá
+            glVertex3f(0, 0, h); glVertex3f(-hW, hL, 0); glVertex3f(hW, hL, 0);   // Zadní
+            glVertex3f(0, 0, h); glVertex3f(-hW, -hL, 0); glVertex3f(-hW, hL, 0); // Levá
+            glEnd();
+
+            glBegin(GL_QUADS);
+            // Základna
+            glVertex3f(-hW, -hL, 0); glVertex3f(hW, -hL, 0); glVertex3f(hW, hL, 0); glVertex3f(-hW, hL, 0);
+            glEnd();
+        }
+
+        glPopAttrib();
     }
 
     // Color interpolation for gradients
