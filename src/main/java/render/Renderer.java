@@ -147,6 +147,10 @@ public class Renderer {
         }
 
         for (BaseObject object : basicObjects) {
+            if(object.getParentFractal() != null) {
+                continue;
+            }
+
             object.render();
         }
 
@@ -417,8 +421,24 @@ public class Renderer {
                             }
                         } else if(currentControlMode == ControlMode.OBJECT_SELECTION) {
                             selectedObjectIndex--;
+
+                            if(selectedObjectIndex < 0) {
+                                selectedObjectIndex = basicObjects.size() - 1;
+                            }
+
+                            selectedObject.setSelected(false);
+                            selectedObject = basicObjects.get(selectedObjectIndex);
+                            selectedObject.setSelected(true);
                         } else if(currentControlMode == ControlMode.FRACTAL_SELECTION) {
                             selectedFractalIndex--;
+
+                            if(selectedFractalIndex < 0) {
+                                selectedFractalIndex = fractals.size() - 1;
+                            }
+
+                            selectedFractal.setSelected(false);
+                            selectedFractal = fractals.get(selectedFractalIndex);
+                            selectedFractal.setSelected(true);
                         }
                     break;
                     case GLFW_KEY_RIGHT:
@@ -436,8 +456,25 @@ public class Renderer {
                             }
                         } else if(currentControlMode == ControlMode.OBJECT_SELECTION) {
                             selectedObjectIndex++;
+
+                            if(selectedObjectIndex > basicObjects.size() - 1) {
+                                selectedObjectIndex = 0;
+                            }
+
+                            selectedObject.setSelected(false);
+                            selectedObject = basicObjects.get(selectedObjectIndex);
+                            selectedObject.setSelected(true);
+
                         } else if(currentControlMode == ControlMode.FRACTAL_SELECTION) {
                             selectedFractalIndex++;
+
+                            if(selectedFractalIndex > fractals.size() - 1) {
+                                selectedFractalIndex = 0;
+                            }
+
+                            selectedFractal.setSelected(false);
+                            selectedFractal = fractals.get(selectedFractalIndex);
+                            selectedFractal.setSelected(true);
                         }
                     break;
                     case GLFW_KEY_KP_ADD:
@@ -556,11 +593,13 @@ public class Renderer {
 
         Fractal sierpinskiPyramid = new Fractal(4, 10f, 10f, 10f, 0f, 10f, new float[] {1f, 0f, 1f}, new float[] {0f, 0f, 1f}, FractalType.SIERPINSKI_PYRAMID);
         fractals.add(sierpinskiPyramid);
+        basicObjects.addAll(sierpinskiPyramid.getObjectList());
         sierpinskiPyramid.move(40f, 0f, 0f);
 
         Fractal mengerSponge = new Fractal(2, 10f, 10f, 10f, 0f, 10f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f}, FractalType.MENGER_SPONGE);
         mengerSponge.setTexture(rockTexture);
         fractals.add(mengerSponge);
+        basicObjects.addAll(mengerSponge.getObjectList());
         mengerSponge.move(60f, 0f, 0f);
     }
 

@@ -100,6 +100,7 @@ public class Pyramid extends BaseObject {
     }
 
     // Translation logic
+    @Override
     public void move(float x, float y, float z) {
         this.posX += x;
         this.posY += y;
@@ -107,21 +108,25 @@ public class Pyramid extends BaseObject {
     }
 
     // Rotation logic
+    @Override
     public void rotate(float angle, float x, float y, float z) {
-        this.rotAngle += angle;
-        this.rotX = x;
-        this.rotY = y;
-        this.rotZ = z;
+        if (x != 0) this.angleX += angle;
+        if (y != 0) this.angleY += angle;
+        if (z != 0) this.angleZ += angle;
     }
 
     // Scaling logic
+    @Override
     public void scale(float s) {
         this.scaleXYZ *= s;
     }
 
+    @Override
     public void applyTransformations() {
         glTranslatef(posX, posY, posZ);
-        glRotatef(rotAngle, rotX, rotY, rotZ);
+        glRotatef(angleZ, 0, 0, 1);
+        glRotatef(angleY, 0, 1, 0);
+        glRotatef(angleX, 1, 0, 0);
         glScalef(scaleXYZ, scaleXYZ, scaleXYZ);
     }
 }

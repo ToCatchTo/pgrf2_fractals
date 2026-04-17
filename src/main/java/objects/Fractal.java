@@ -72,6 +72,7 @@ public class Fractal extends BaseObject {
             // Checks for color difference
             if(colorTop == colorBottom || gradientLevel == 0) {
                 Pyramid pyramid = new Pyramid(width, length, height, colorTop, colorTop);
+                pyramid.setParentFractal(this);
                 objectList.add(pyramid);
             } else {
                 // Calculate interpolated color based on the current Z level
@@ -79,6 +80,7 @@ public class Fractal extends BaseObject {
                 float[] topColorInterpolated = lerp(colorBottom, colorTop, (baseZ + height) / gradientLevel);
 
                 Pyramid pyramid = new Pyramid(width, length, height, topColorInterpolated, bottomColorInterpolated);
+                pyramid.setParentFractal(this);
 
                 pyramid.move(x, y, z);
                 objectList.add(pyramid);
@@ -113,6 +115,7 @@ public class Fractal extends BaseObject {
             // Checks for color difference
             if(colorTop == colorBottom || gradientLevel == 0) {
                 Cube cube = new Cube(width, length, height, colorTop, colorBottom);
+                cube.setParentFractal(this);
                 objectList.add(cube);
             } else {
                 // Calculate interpolated color based on the current Z level
@@ -120,6 +123,7 @@ public class Fractal extends BaseObject {
                 float[] topColorInterpolated = lerp(colorBottom, colorTop, (baseZ + height) / gradientLevel);
 
                 Cube cube = new Cube(width, length, height, topColorInterpolated, bottomColorInterpolated);
+                cube.setParentFractal(this);
 
                 cube.move(x, y, z);
                 objectList.add(cube);
@@ -235,10 +239,9 @@ public class Fractal extends BaseObject {
     // Rotation logic
     @Override
     public void rotate(float angle, float x, float y, float z) {
-        this.rotAngle += angle;
-        this.rotX = x;
-        this.rotY = y;
-        this.rotZ = z;
+        if (x != 0) this.angleX += angle;
+        if (y != 0) this.angleY += angle;
+        if (z != 0) this.angleZ += angle;
     }
 
     // Scaling logic
@@ -249,8 +252,14 @@ public class Fractal extends BaseObject {
 
     @Override
     public void applyTransformations() {
-        glTranslatef(this.posX, this.posY, this.posZ);
-        glRotatef(this.rotAngle, this.rotX, this.rotY, this.rotZ);
-        glScalef(this.scaleXYZ, this.scaleXYZ, this.scaleXYZ);
+        glTranslatef(posX, posY, posZ);
+        glRotatef(angleZ, 0, 0, 1);
+        glRotatef(angleY, 0, 1, 0);
+        glRotatef(angleX, 1, 0, 0);
+        glScalef(scaleXYZ, scaleXYZ, scaleXYZ);
+    }
+
+    public ArrayList<BaseObject> getObjectList() {
+        return objectList;
     }
 }
