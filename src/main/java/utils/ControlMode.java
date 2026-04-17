@@ -7,4 +7,6 @@ public enum ControlMode {
     SCALE,
     FRACTAL_SELECTION,
     OBJECT_SELECTION,
+    LIGHT_TRANSLATION,
+    PERSPECTIVE,
 }

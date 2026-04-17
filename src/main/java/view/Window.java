@@ -61,7 +61,7 @@ public class Window {
         });
 
         glfwMakeContextCurrent(window);
-        glfwSwapInterval(1); // Locked 60
+        glfwSwapInterval(1); // Locked 60 fps
         glfwShowWindow(window);
     }
 

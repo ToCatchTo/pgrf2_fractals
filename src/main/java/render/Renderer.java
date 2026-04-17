@@ -1,13 +1,7 @@
 package render;
 
-import objects.BaseObject;
-import objects.Cube;
-import objects.Fractal;
-import objects.Pyramid;
-import utils.Camera;
-import utils.ControlMode;
-import utils.FractalType;
-import utils.TextRenderer;
+import objects.*;
+import utils.*;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -20,7 +14,6 @@ public class Renderer {
     // General
     private TextRenderer textRenderer;
     private int width, height;
-    private int fractalList;
     // Object management
     private ControlMode currentControlMode = ControlMode.NONE;
     private ArrayList<Fractal> fractals = new ArrayList<Fractal>();
@@ -41,6 +34,11 @@ public class Renderer {
     private boolean wDown, sDown, aDown, dDown;
     private double lastMouseX, lastMouseY;
     private boolean isLooking = false;
+    // Light
+    private Sphere lightSource;
+    private float[] lightAmbient = { 0.2f, 0.2f, 0.2f, 1.0f };
+    private float[] lightDiffuse = { 0.8f, 0.8f, 0.8f, 1.0f };
+    private float[] lightSpecular = { 1.0f, 1.0f, 1.0f, 1.0f };
 
     public Renderer(int width, int height) {
         this.width = width;
@@ -52,32 +50,30 @@ public class Renderer {
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glEnable(GL_DEPTH_TEST);
 
-        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // Wireframe mode maybe implement?
-
+        // Text package
         textRenderer = new TextRenderer(width, height);
         oldmils = System.nanoTime();
 
+        // Camera
         camera = new Camera();
 
+        // Test scene - maybe will change
         renderTestScene();
 
+        // Selected objects init
         if(!fractals.isEmpty()) {
             selectedFractal = fractals.get(selectedFractalIndex);
         }
-
         if(!basicObjects.isEmpty()) {
             selectedObject = basicObjects.get(selectedObjectIndex);
             selectedObject.setSelected(true);
         }
 
-        // Create a list that is located directly at GPUs memory for better performance
-        // fractalList = glGenLists(1);
-        // glNewList(fractalList, GL_COMPILE);
-        // Fractal.renderMenger(3, 10f, 10f, 10f, 0f, 10f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f});
-        // glEndList();
+        // Light
+        initLight();
     }
 
-    // Function that repeats and redraws the scene
+    // Repeats and redraws the scene
     public void display() {
         glViewport(0, 0, width, height);
 
@@ -103,14 +99,15 @@ public class Renderer {
         // Camera set up
         camera.setMatrix();
 
+        // Light source
+        renderLight();
+
         // Render of 3D objects
         renderObjects();
 
         // Projection
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
-
-        System.out.println("Current Mode: " + currentControlMode + " | " + "Fractal mode: " + isFractalModeActive + " | " + "Selected object: " + selectedObject + " | " + "Selected fractal: " + selectedFractal);
 
         // Perspective Switch
         if (per)
@@ -120,6 +117,8 @@ public class Renderer {
                     20 * width / (float) height,
                     -20, 20, 0.1f, 100.0f);
 
+        // Render axis
+        renderAxis();
         // Render of text
         renderText();
     }
@@ -141,13 +140,7 @@ public class Renderer {
     private void renderObjects() {
         glEnable(GL_DEPTH_TEST);
 
-        renderAxis();
-
         glPushMatrix();
-//        Fractal.renderSierpinski(4, 10.0f, 10.0f, 10.0f, 0.0f, 10.0f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f});
-//        glTranslatef(20, 0, 0);
-//        Fractal.renderMenger(4, 10.0f, 10.0f, 10.0f, 0.0f, 10.0f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f});
-//        glCallList(fractalList);
 
         for (Fractal fractal : fractals) {
             fractal.render();
@@ -163,6 +156,7 @@ public class Renderer {
     // Renders all text in the scene
     private void renderText() {
         glDisable(GL_DEPTH_TEST);
+        glDisable(GL_LIGHTING);
 
         glMatrixMode(GL_PROJECTION);
         glPushMatrix();
@@ -171,8 +165,8 @@ public class Renderer {
         glPushMatrix();
         glLoadIdentity();
 
-        textRenderer.drawText("FPS: " + currentFps, 20, 30, Color.WHITE);
-        textRenderer.drawText("Projekt: Fraktály", 20, 60, Color.WHITE);
+        textRenderer.drawText("FPS: " + currentFps + " | " + "Current Mode: " + currentControlMode, 20, 30, Color.WHITE);
+        textRenderer.drawText("Selected object: " + selectedObject + " | " + "Selected fractal: " + selectedFractal, 20, 50, Color.WHITE);
 
         glMatrixMode(GL_PROJECTION);
         glPopMatrix();
@@ -182,16 +176,22 @@ public class Renderer {
 
     // Renders XYZ axis
     public void renderAxis() {
+        glEnable(GL_DEPTH_TEST);
+        glDisable(GL_LIGHTING);
+
         glBegin(GL_LINES);
-        glColor3f(1f, 0f, 0f);
-        glVertex3f(0f, 0f, 0f);
-        glVertex3f(100f, 0f, 0f);
-        glColor3f(0f, 1f, 0f);
-        glVertex3f(0f, 0f, 0f);
-        glVertex3f(0f, 100f, 0f);
-        glColor3f(0f, 0f, 1f);
-        glVertex3f(0f, 0f, 0f);
-        glVertex3f(0f, 0f, 100f);
+            // +X - Red
+            glColor3f(1f, 0f, 0f);
+            glVertex3f(0f, 0f, 0f);
+            glVertex3f(100f, 0f, 0f);
+            // +Y - Green
+            glColor3f(0f, 1f, 0f);
+            glVertex3f(0f, 0f, 0f);
+            glVertex3f(0f, 100f, 0f);
+            // +Z / Blue
+            glColor3f(0f, 0f, 1f);
+            glVertex3f(0f, 0f, 0f);
+            glVertex3f(0f, 0f, 100f);
         glEnd();
     }
 
@@ -388,6 +388,15 @@ public class Renderer {
                             isFractalModeActive = true;
                         }
                     break;
+                    case GLFW_KEY_L:
+                        isFractalModeActive = false;
+                        currentControlMode = ControlMode.LIGHT_TRANSLATION;
+                        selectedObject.setSelected(false);
+                        selectedObject = lightSource;
+                    break;
+                    case GLFW_KEY_P:
+                        per = !per;
+                    break;
                 }
             break;
             // Holding
@@ -526,20 +535,69 @@ public class Renderer {
         lastMouseY = y;
     }
 
+    // Test scene render
     public void renderTestScene() {
+        int woodTexture = TextureLoader.loadTexture("wood.jpg");
+        int rockTexture = TextureLoader.loadTexture("rocks.jpg");
+        int onyxTexture = TextureLoader.loadTexture("onyx.jpg");
+
         Cube cube = new Cube(10.0f, 10.0f, 10.0f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f});
+        cube.setTexture(woodTexture);
         basicObjects.add(cube);
 
+        Cube cube2 = new Cube(10.0f, 10.0f, 10.0f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f});
+        basicObjects.add(cube2);
+        cube2.move(80f, 0f, 0f);
+
         Pyramid pyramid = new Pyramid(10.0f, 10.0f, 10.0f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f});
+        pyramid.setTexture(onyxTexture);
         basicObjects.add(pyramid);
         pyramid.move(20f, 0f, 0f);
 
-        Fractal sierpinskiPyramid = new Fractal(4, 10f, 10f, 10f, 0f, 10f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f}, FractalType.SIERPINSKI_PYRAMID);
+        Fractal sierpinskiPyramid = new Fractal(4, 10f, 10f, 10f, 0f, 10f, new float[] {1f, 0f, 1f}, new float[] {0f, 0f, 1f}, FractalType.SIERPINSKI_PYRAMID);
         fractals.add(sierpinskiPyramid);
         sierpinskiPyramid.move(40f, 0f, 0f);
 
         Fractal mengerSponge = new Fractal(2, 10f, 10f, 10f, 0f, 10f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f}, FractalType.MENGER_SPONGE);
+        mengerSponge.setTexture(rockTexture);
         fractals.add(mengerSponge);
         mengerSponge.move(60f, 0f, 0f);
+    }
+
+    // Light source initialization
+    private void initLight() {
+        // Creates light source object
+        lightSource = new Sphere(1.0f, 20, 20, new float[]{1.0f, 1.0f, 0.0f});
+        lightSource.move(20, 20, 30);
+
+        glEnable(GL_LIGHTING);
+        glEnable(GL_LIGHT0);
+        glEnable(GL_NORMALIZE);
+        glShadeModel(GL_SMOOTH);
+
+        // Ambient, diffuse, specular
+        glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmbient);
+        glLightfv(GL_LIGHT0, GL_DIFFUSE, lightDiffuse);
+        glLightfv(GL_LIGHT0, GL_SPECULAR, lightSpecular);
+
+        glEnable(GL_COLOR_MATERIAL);
+        glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+
+        // Shininess
+        glMaterialf(GL_FRONT, GL_SHININESS, 50.0f);
+        glMaterialfv(GL_FRONT, GL_SPECULAR, new float[]{1.0f, 1.0f, 1.0f, 1.0f});
+    }
+
+    // Light source render
+    private void renderLight() {
+        float[] position = {
+                lightSource.getPosX(),
+                lightSource.getPosY(),
+                lightSource.getPosZ(),
+                1.0f
+        };
+        glLightfv(GL_LIGHT0, GL_POSITION, position);
+        lightSource.render();
+        glEnable(GL_LIGHTING);
     }
 }

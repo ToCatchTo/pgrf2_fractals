@@ -15,16 +15,6 @@ public class Fractal extends BaseObject {
     private FractalType type;
     private ArrayList<BaseObject> objectList = new ArrayList<BaseObject>();
 
-    /**
-     * @param depth          Depth of recursion
-     * @param width          Width of the whole fractal
-     * @param length         Length of the whole fractal
-     * @param height         Height of the whole fractal
-     * @param baseZ          Current Z position of the fractal
-     * @param gradientLevel  Controls the level of gradient
-     * @param colorTop       Top color of the fractal
-     * @param colorBottom    Bottom color of the fractal
-     */
     public Fractal(int depth, float width, float length, float height, float baseZ, float gradientLevel, float[] colorTop, float[] colorBottom, FractalType type) {
         this.depth = depth;
         this.width = width;
@@ -39,6 +29,7 @@ public class Fractal extends BaseObject {
         generate();
     }
 
+    // Generates fractal based on given type and makes calculations only once for better performance
     private void generate() {
         if (type == FractalType.SIERPINSKI_PYRAMID) {
             generateSierpinski(depth, width, length, height, baseZ, gradientLevel, colorTop, colorBottom, 0, 0, 0);
@@ -47,17 +38,26 @@ public class Fractal extends BaseObject {
         }
     }
 
+    // Render logic
     @Override
     public void render() {
         glPushMatrix();
 
         applyTransformations();
 
-        // Jednoduše nakreslíme všechny objekty, které jsme si při startu uložili
-        for (BaseObject object : objectList) {
-            object.render();
+        // Fractal has texture
+        if (this.textureId != 0) {
+            for (BaseObject object : objectList) {
+                object.setTexture(this.textureId);
+                object.render();
+            }
+        } else {
+            for (BaseObject object : objectList) {
+                object.render();
+            }
         }
 
+        // Fractal is selected
         if (this.isSelected()) {
             drawBoundingShape();
         }
@@ -65,19 +65,20 @@ public class Fractal extends BaseObject {
         glPopMatrix();
     }
 
+    // Sierpinski pyramid
     private void generateSierpinski(int depth, float width, float length, float height, float baseZ, float gradientLevel, float[] colorTop, float[] colorBottom, float x, float y, float z) {
         // Ending condition
         if (depth == 0) {
             // Checks for color difference
             if(colorTop == colorBottom || gradientLevel == 0) {
-                Pyramid pyramid = new Pyramid(width, length, height, colorTop, colorTop, this);
+                Pyramid pyramid = new Pyramid(width, length, height, colorTop, colorTop);
                 objectList.add(pyramid);
             } else {
                 // Calculate interpolated color based on the current Z level
                 float[] bottomColorInterpolated = lerp(colorBottom, colorTop, baseZ / gradientLevel);
                 float[] topColorInterpolated = lerp(colorBottom, colorTop, (baseZ + height) / gradientLevel);
 
-                Pyramid pyramid = new Pyramid(width, length, height, topColorInterpolated, bottomColorInterpolated, this);
+                Pyramid pyramid = new Pyramid(width, length, height, topColorInterpolated, bottomColorInterpolated);
 
                 pyramid.move(x, y, z);
                 objectList.add(pyramid);
@@ -95,27 +96,30 @@ public class Fractal extends BaseObject {
         float offW = nW / 2.0f;
         float offL = nL / 2.0f;
 
-        // Horní pyramida - k Z přičteme nH, X a Y zůstávají
+        // Apex pyramid
         generateSierpinski(depth - 1, nW, nL, nH, baseZ + nH, gradientLevel, colorTop, colorBottom, x, y, z + nH);
 
-        // Spodní 4 pyramidy - k X a Y musíme PŘIČÍST offsety
+        // Base 4 pyramids
         generateSierpinski(depth - 1, nW, nL, nH, baseZ, gradientLevel, colorTop, colorBottom, x - offW, y - offL, z);
         generateSierpinski(depth - 1, nW, nL, nH, baseZ, gradientLevel, colorTop, colorBottom, x + offW, y - offL, z);
         generateSierpinski(depth - 1, nW, nL, nH, baseZ, gradientLevel, colorTop, colorBottom, x + offW, y + offL, z);
         generateSierpinski(depth - 1, nW, nL, nH, baseZ, gradientLevel, colorTop, colorBottom, x - offW, y + offL, z);
     }
 
+    // Menger sponge
     private void generateMenger(int depth, float width, float length, float height, float baseZ, float gradientLevel, float[] colorTop, float[] colorBottom, float x, float y, float z) {
+        // Ending condition
         if (depth == 0) {
+            // Checks for color difference
             if(colorTop == colorBottom || gradientLevel == 0) {
-                Cube cube = new Cube(width, length, height, colorTop, colorBottom, this);
+                Cube cube = new Cube(width, length, height, colorTop, colorBottom);
                 objectList.add(cube);
             } else {
                 // Calculate interpolated color based on the current Z level
                 float[] bottomColorInterpolated = lerp(colorBottom, colorTop, baseZ / gradientLevel);
                 float[] topColorInterpolated = lerp(colorBottom, colorTop, (baseZ + height) / gradientLevel);
 
-                Cube cube = new Cube(width, length, height, topColorInterpolated, bottomColorInterpolated, this);
+                Cube cube = new Cube(width, length, height, topColorInterpolated, bottomColorInterpolated);
 
                 cube.move(x, y, z);
                 objectList.add(cube);
@@ -124,11 +128,12 @@ public class Fractal extends BaseObject {
             return;
         }
 
+        // New halved parameters
         float nW = width / 3.0f;
         float nL = length / 3.0f;
         float nH = height / 3.0f;
 
-        // Iterate through a 3x3x3 grid
+        // Divides cube to 3x3x3
         for (int i = -1; i <= 1; i++) {
             for (int j = -1; j <= 1; j++) {
                 for (int k = -1; k <= 1; k++) {
@@ -139,14 +144,12 @@ public class Fractal extends BaseObject {
                     if (absI + absJ + absK > 1) {
                         float newX = x + (i * nW);
                         float newY = y + (j * nL);
-
-                        // OPRAVA ZDE: (k + 1) zajistí, že spodní vrstva začne na 0
                         float newZ = z + ((k + 1) * nH);
 
                         generateMenger(
                                 depth - 1,
                                 nW, nL, nH,
-                                baseZ + ((k + 1) * nH), // Tady také musíme barvy posunout
+                                baseZ + ((k + 1) * nH),
                                 gradientLevel,
                                 colorTop,
                                 colorBottom,
@@ -158,50 +161,53 @@ public class Fractal extends BaseObject {
         }
     }
 
+    // Render of selection wireframe
     private void drawBoundingShape() {
         glPushAttrib(GL_ALL_ATTRIB_BITS);
+        glDisable(GL_LIGHTING);
         glDisable(GL_TEXTURE_2D);
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        glLineWidth(3.0f);
+        glLineWidth(2.5f);
 
-        // Použijeme trochu větší offset, aby obrys zaručeně "přebil" všechny objekty na hranách
+        // Little offset
         glEnable(GL_POLYGON_OFFSET_LINE);
         glPolygonOffset(-2.0f, -2.0f);
 
-        glColor3f(1.0f, 1.0f, 0.0f); // Žlutá barva
+        glColor3f(1.0f, 1.0f, 0.0f);
 
         float hW = this.width / 2.0f;
         float hL = this.length / 2.0f;
         float h = this.height;
 
         if (this.type == FractalType.MENGER_SPONGE) {
-            // Obrys pro houbu = velká kostka
             glBegin(GL_QUADS);
-            // Horní a spodní
-            glVertex3f(-hW, hL, h);  glVertex3f(hW, hL, h);  glVertex3f(hW, -hL, h); glVertex3f(-hW, -hL, h);
-            glVertex3f(-hW, hL, 0);  glVertex3f(hW, hL, 0);  glVertex3f(hW, -hL, 0); glVertex3f(-hW, -hL, 0);
-            // Přední a zadní
-            glVertex3f(-hW, -hL, 0); glVertex3f(hW, -hL, 0); glVertex3f(hW, -hL, h); glVertex3f(-hW, -hL, h);
-            glVertex3f(-hW, hL, 0);  glVertex3f(hW, hL, 0);  glVertex3f(hW, hL, h);  glVertex3f(-hW, hL, h);
-            // Levá a pravá
-            glVertex3f(-hW, -hL, 0); glVertex3f(-hW, hL, 0); glVertex3f(-hW, hL, h); glVertex3f(-hW, -hL, h);
-            glVertex3f(hW, -hL, 0);  glVertex3f(hW, hL, 0);  glVertex3f(hW, hL, h);  glVertex3f(hW, -hL, h);
+                // Top and bottom
+                glVertex3f(-hW, hL, h);  glVertex3f(hW, hL, h);  glVertex3f(hW, -hL, h); glVertex3f(-hW, -hL, h);
+                glVertex3f(-hW, hL, 0);  glVertex3f(hW, hL, 0);  glVertex3f(hW, -hL, 0); glVertex3f(-hW, -hL, 0);
+                // Front and back
+                glVertex3f(-hW, -hL, 0); glVertex3f(hW, -hL, 0); glVertex3f(hW, -hL, h); glVertex3f(-hW, -hL, h);
+                glVertex3f(-hW, hL, 0);  glVertex3f(hW, hL, 0);  glVertex3f(hW, hL, h);  glVertex3f(-hW, hL, h);
+                // Left and right
+                glVertex3f(-hW, -hL, 0); glVertex3f(-hW, hL, 0); glVertex3f(-hW, hL, h); glVertex3f(-hW, -hL, h);
+                glVertex3f(hW, -hL, 0);  glVertex3f(hW, hL, 0);  glVertex3f(hW, hL, h);  glVertex3f(hW, -hL, h);
             glEnd();
         }
         else if (this.type == FractalType.SIERPINSKI_PYRAMID) {
-            // Obrys pro Sierpinskeho = velká pyramida
             glBegin(GL_TRIANGLES);
-            // 4 stěny pyramidy
-            glVertex3f(0, 0, h); glVertex3f(hW, -hL, 0); glVertex3f(-hW, -hL, 0); // Přední
-            glVertex3f(0, 0, h); glVertex3f(hW, hL, 0);  glVertex3f(hW, -hL, 0);  // Pravá
-            glVertex3f(0, 0, h); glVertex3f(-hW, hL, 0); glVertex3f(hW, hL, 0);   // Zadní
-            glVertex3f(0, 0, h); glVertex3f(-hW, -hL, 0); glVertex3f(-hW, hL, 0); // Levá
+                // Top
+                glVertex3f(0, 0, h); glVertex3f(hW, -hL, 0); glVertex3f(-hW, -hL, 0);
+                // Right
+                glVertex3f(0, 0, h); glVertex3f(hW, hL, 0);  glVertex3f(hW, -hL, 0);
+                // Back
+                glVertex3f(0, 0, h); glVertex3f(-hW, hL, 0); glVertex3f(hW, hL, 0);
+                // Left
+                glVertex3f(0, 0, h); glVertex3f(-hW, -hL, 0); glVertex3f(-hW, hL, 0);
             glEnd();
 
             glBegin(GL_QUADS);
-            // Základna
-            glVertex3f(-hW, -hL, 0); glVertex3f(hW, -hL, 0); glVertex3f(hW, hL, 0); glVertex3f(-hW, hL, 0);
+                // Base
+                glVertex3f(-hW, -hL, 0); glVertex3f(hW, -hL, 0); glVertex3f(hW, hL, 0); glVertex3f(-hW, hL, 0);
             glEnd();
         }
 
@@ -216,10 +222,6 @@ public class Fractal extends BaseObject {
                 a[1] + (b[1] - a[1]) * t,
                 a[2] + (b[2] - a[2]) * t
         };
-    }
-
-    public ArrayList<BaseObject> getObjectList() {
-        return objectList;
     }
 
     // Translation logic
