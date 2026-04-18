@@ -35,7 +35,12 @@ public class Pyramid extends BaseObject {
         }
 
         // Render of pyramid
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        if(this.isWireframed) {
+            glDisable(GL_LIGHTING);
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        } else {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }
         drawGeometry(finalTop, finalBottom);
 
         // Render of selection wireframe

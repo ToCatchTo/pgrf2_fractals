@@ -1,10 +1,19 @@
 package render;
 
+import imgui.ImGui;
+import imgui.flag.ImGuiCond;
+import imgui.flag.ImGuiConfigFlags;
+import imgui.gl3.ImGuiImplGl3;
+import imgui.glfw.ImGuiImplGlfw;
+import imgui.type.ImBoolean;
+import imgui.type.ImFloat;
+import imgui.type.ImInt;
 import objects.*;
 import utils.*;
 
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.Locale;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -14,6 +23,8 @@ public class Renderer {
     // General
     private TextRenderer textRenderer;
     private int width, height;
+    private boolean isWireframeActive = false;
+    private boolean isLightingActive = true;
     // Object management
     private ControlMode currentControlMode = ControlMode.NONE;
     private ArrayList<Fractal> fractals = new ArrayList<Fractal>();
@@ -39,16 +50,32 @@ public class Renderer {
     private float[] lightAmbient = { 0.2f, 0.2f, 0.2f, 1.0f };
     private float[] lightDiffuse = { 0.8f, 0.8f, 0.8f, 1.0f };
     private float[] lightSpecular = { 1.0f, 1.0f, 1.0f, 1.0f };
+    // GUI
+    private final ImGuiImplGlfw imGuiGlfw = new ImGuiImplGlfw();
+    private final ImGuiImplGl3 imGuiGl3 = new ImGuiImplGl3();
 
     public Renderer(int width, int height) {
         this.width = width;
         this.height = height;
     }
 
+    // Window Resize
+    public void resize(int newWidth, int newHeight) {
+        if (newHeight == 0) newHeight = 1;
+        this.width = newWidth;
+        this.height = newHeight;
+        textRenderer = new TextRenderer(width, height);
+    }
+
     // Initialization
-    public void init() {
+    public void init(long window) {
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glEnable(GL_DEPTH_TEST);
+
+        // GUI
+        ImGui.createContext();
+        imGuiGlfw.init(window, true);
+        imGuiGl3.init("#version 130");
 
         // Text package
         textRenderer = new TextRenderer(width, height);
@@ -75,6 +102,9 @@ public class Renderer {
 
     // Repeats and redraws the scene
     public void display() {
+        imGuiGlfw.newFrame();
+        ImGui.newFrame();
+
         glViewport(0, 0, width, height);
 
         // Cleaning up
@@ -100,10 +130,20 @@ public class Renderer {
         camera.setMatrix();
 
         // Light source
-        renderLight();
+        if(isLightingActive) {
+            renderLight();
+        }
 
         // Render of 3D objects
         renderObjects();
+
+        // Light source
+        if(isLightingActive) {
+            renderLight();
+        }
+
+        // Render GUI
+        renderGUI();
 
         // Projection
         glMatrixMode(GL_PROJECTION);
@@ -159,6 +199,7 @@ public class Renderer {
 
     // Renders all text in the scene
     private void renderText() {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_LIGHTING);
 
@@ -169,13 +210,13 @@ public class Renderer {
         glPushMatrix();
         glLoadIdentity();
 
-        textRenderer.drawText("FPS: " + currentFps + " | " + "Current Mode: " + currentControlMode, 20, 30, Color.WHITE);
-        textRenderer.drawText("Selected object: " + selectedObject + " | " + "Selected fractal: " + selectedFractal, 20, 50, Color.WHITE);
+        textRenderer.drawText("FPS: " + currentFps, 20, 30, Color.WHITE);
 
         glMatrixMode(GL_PROJECTION);
         glPopMatrix();
         glMatrixMode(GL_MODELVIEW);
         glPopMatrix();
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     }
 
     // Renders XYZ axis
@@ -201,6 +242,8 @@ public class Renderer {
 
     // Key handler
     public void handleKey(int key, int action) {
+        if (ImGui.getIO().getWantCaptureKeyboard()) return;
+
         // Camera movement
         boolean isDown = (action != GLFW_RELEASE);
         if (key == GLFW_KEY_W) wDown = isDown;
@@ -401,6 +444,23 @@ public class Renderer {
                     case GLFW_KEY_P:
                         per = !per;
                     break;
+                    case GLFW_KEY_DELETE:
+                        if(selectedObject != null) {
+                            basicObjects.remove(selectedObjectIndex);
+                            selectedObjectIndex = 0;
+                            selectedObject = !basicObjects.isEmpty() ? basicObjects.get(selectedObjectIndex) : null;
+                        } else if(selectedFractal != null) {
+                            fractals.remove(selectedFractalIndex);
+                            selectedFractalIndex = 0;
+                            selectedFractal = !fractals.isEmpty() ? fractals.get(selectedFractalIndex) : null;
+                        }
+                    break;
+                    case GLFW_KEY_X:
+                        isWireframeActive = !isWireframeActive;
+                        for (BaseObject object : basicObjects) {
+                            object.setWireframed(isWireframeActive);
+                        }
+                    break;
                 }
             break;
             // Holding
@@ -556,6 +616,8 @@ public class Renderer {
 
     // Mouse button handler
     public void handleMouseButton(boolean down) {
+        if (ImGui.getIO().getWantCaptureMouse()) return;
+
         isLooking = down;
     }
 
@@ -574,12 +636,7 @@ public class Renderer {
 
     // Test scene render
     public void renderTestScene() {
-        int woodTexture = TextureLoader.loadTexture("wood.jpg");
-        int rockTexture = TextureLoader.loadTexture("rocks.jpg");
-        int onyxTexture = TextureLoader.loadTexture("onyx.jpg");
-
         Cube cube = new Cube(10.0f, 10.0f, 10.0f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f});
-        cube.setTexture(woodTexture);
         basicObjects.add(cube);
 
         Cube cube2 = new Cube(10.0f, 10.0f, 10.0f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f});
@@ -587,7 +644,6 @@ public class Renderer {
         cube2.move(80f, 0f, 0f);
 
         Pyramid pyramid = new Pyramid(10.0f, 10.0f, 10.0f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f});
-        pyramid.setTexture(onyxTexture);
         basicObjects.add(pyramid);
         pyramid.move(20f, 0f, 0f);
 
@@ -597,7 +653,6 @@ public class Renderer {
         sierpinskiPyramid.move(40f, 0f, 0f);
 
         Fractal mengerSponge = new Fractal(2, 10f, 10f, 10f, 0f, 10f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f}, FractalType.MENGER_SPONGE);
-        mengerSponge.setTexture(rockTexture);
         fractals.add(mengerSponge);
         basicObjects.addAll(mengerSponge.getObjectList());
         mengerSponge.move(60f, 0f, 0f);
@@ -605,6 +660,8 @@ public class Renderer {
 
     // Light source initialization
     private void initLight() {
+        glEnable(GL_DEPTH_TEST);
+
         // Creates light source object
         lightSource = new Sphere(1.0f, 20, 20, new float[]{1.0f, 1.0f, 0.0f});
         lightSource.move(20, 20, 30);
@@ -638,5 +695,191 @@ public class Renderer {
         glLightfv(GL_LIGHT0, GL_POSITION, position);
         lightSource.render();
         glEnable(GL_LIGHTING);
+    }
+
+    // GUI layout
+    private void renderGUI() {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+        ImGui.setNextWindowSize(400, 550);
+        ImGui.setNextWindowPos(width - ImGui.getWindowWidth() - 15, 15, ImGuiCond.Always);
+        ImGui.begin("Control panel");
+
+        if (!basicObjects.isEmpty() || !fractals.isEmpty()) {
+            // Scene
+            BaseObject currentObject = isFractalModeActive ? selectedFractal : selectedObject;
+            ImBoolean wireframe = new ImBoolean(isWireframeActive);
+            ImBoolean lighting = new ImBoolean(isLightingActive);
+
+            // Objects
+            ImFloat posX = new ImFloat(currentObject.getPosX());
+            ImFloat posY = new ImFloat(currentObject.getPosY());
+            ImFloat posZ = new ImFloat(currentObject.getPosZ());
+            ImFloat rotX = new ImFloat(currentObject.getAngleX());
+            ImFloat rotY = new ImFloat(currentObject.getAngleY());
+            ImFloat rotZ = new ImFloat(currentObject.getAngleZ());
+            ImFloat scaleXYZ = new ImFloat(currentObject.getScale());
+
+            // Light
+            ImFloat lightPosX = new ImFloat(lightSource.getPosX());
+            ImFloat lightPosY = new ImFloat(lightSource.getPosY());
+            ImFloat lightPosZ = new ImFloat(lightSource.getPosZ());
+
+            // Textures
+            ImInt texturesIndex = null;
+            String[] textures = {"None" ,"onyx.jpg", "rocks.jpg", "wood.jpg"};
+            for (int i = 1; i < textures.length; i++) {
+                if(currentObject.getTextureName() == textures[i]) {
+                    texturesIndex = new ImInt(i);
+                }
+            }
+
+            if(texturesIndex == null) texturesIndex = new ImInt(0);
+
+            // Scene info
+            ImGui.textColored(1f, 1f, 0f, 1f, "Scene details");
+            ImGui.separator();
+            ImGui.indent();
+            String selectedObjectText = isFractalModeActive ? "Selected fractal: " + selectedFractal.getType().toString().toLowerCase() : "Selected object: " + selectedObject.getClass().getSimpleName().toLowerCase();
+            ImGui.text(selectedObjectText);
+            ImGui.text("Current control mode: " + currentControlMode);
+            if (ImGui.checkbox("Wireframe mode", wireframe)) {
+                isWireframeActive = wireframe.get();
+                for (BaseObject object : basicObjects) {
+                    object.setWireframed(isWireframeActive);
+                }
+            }
+            if (ImGui.checkbox("Lighting", lighting)) {
+                isLightingActive = lighting.get();
+            }
+            ImGui.unindent();
+            ImGui.separator();
+
+            // Object position
+            ImGui.textColored(1f, 1f, 0f, 1f, "Position");
+            ImGui.separator();
+            ImGui.indent();
+            // X
+            ImGui.text("x:");
+            ImGui.sameLine(50);
+            ImGui.setNextItemWidth(100);
+            if (ImGui.inputFloat("##posX", posX)) {
+                currentObject.setPosX(posX.floatValue());
+            }
+            // Y
+            ImGui.text("y:");
+            ImGui.sameLine(50);
+            ImGui.setNextItemWidth(100);
+            if (ImGui.inputFloat("##posY", posY)) {
+                currentObject.setPosY(posY.floatValue());
+            }
+            // Z
+            ImGui.text("z:");
+            ImGui.sameLine(50);
+            ImGui.setNextItemWidth(100);
+            if (ImGui.inputFloat("##posZ", posZ)) {
+                currentObject.setPosZ(posZ.floatValue());
+            }
+            ImGui.unindent();
+            ImGui.separator();
+
+            // Object rotation
+            ImGui.textColored(1f, 1f, 0f, 1f, "Rotation");
+            ImGui.separator();
+            ImGui.indent();
+            // X
+            ImGui.text("x:");
+            ImGui.sameLine(50);
+            ImGui.setNextItemWidth(100);
+            if (ImGui.inputFloat("##rotX", rotX)) {
+                currentObject.setAngleX(rotX.floatValue());
+            }
+            // Y
+            ImGui.text("y:");
+            ImGui.sameLine(50);
+            ImGui.setNextItemWidth(100);
+            if (ImGui.inputFloat("##rotY", rotY)) {
+                currentObject.setAngleY(rotY.floatValue());
+            }
+            // Z
+            ImGui.text("z:");
+            ImGui.sameLine(50);
+            ImGui.setNextItemWidth(100);
+            if (ImGui.inputFloat("##rotZ", rotZ)) {
+                currentObject.setAngleZ(rotZ.floatValue());
+            }
+            ImGui.unindent();
+            ImGui.separator();
+
+            // Object scale
+            ImGui.textColored(1f, 1f, 0f, 1f, "Scale");
+            ImGui.separator();
+            ImGui.indent();
+
+            ImGui.setNextItemWidth(100);
+            if (ImGui.inputFloat("##scaleXYZ", scaleXYZ)) {
+                currentObject.setScale(scaleXYZ.floatValue());
+            }
+
+            ImGui.unindent();
+            ImGui.separator();
+
+            // Light position
+            ImGui.textColored(1f, 1f, 0f, 1f, "Light Source");
+            ImGui.separator();
+            ImGui.indent();
+            // X
+            ImGui.text("x:");
+            ImGui.sameLine(50);
+            ImGui.setNextItemWidth(100);
+            if (ImGui.inputFloat("##lightPosX", lightPosX)) {
+                lightSource.setPosX(lightPosX.floatValue());
+            }
+            // Y
+            ImGui.text("y:");
+            ImGui.sameLine(50);
+            ImGui.setNextItemWidth(100);
+            if (ImGui.inputFloat("##lightPosY", lightPosY)) {
+                lightSource.setPosY(lightPosY.floatValue());
+            }
+            // Z
+            ImGui.text("z:");
+            ImGui.sameLine(50);
+            ImGui.setNextItemWidth(100);
+            if (ImGui.inputFloat("##lightPosZ", lightPosZ)) {
+                lightSource.setPosZ(lightPosZ.floatValue());
+            }
+            ImGui.unindent();
+            ImGui.separator();
+
+            // Textures combo box
+            ImGui.textColored(1f, 1f, 0f, 1f, "Textures");
+            ImGui.separator();
+            ImGui.indent();
+
+            ImGui.text("Texture options:");
+            ImGui.sameLine(150);
+            ImGui.setNextItemWidth(200);
+            if (ImGui.combo("##textureComboBox", texturesIndex, textures)) {
+                if(textures[texturesIndex.get()] == "None") {
+                    currentObject.setTexture(0, "");
+                } else {
+                    currentObject.setTexture(TextureLoader.loadTexture(textures[texturesIndex.get()]), textures[texturesIndex.get()]);
+                }
+            }
+
+            ImGui.unindent();
+
+            ImGui.unindent();
+        } else {
+            ImGui.text("No objects found");
+        }
+
+        ImGui.end();
+
+        ImGui.render();
+        imGuiGl3.renderDrawData(ImGui.getDrawData());
+
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     }
 }

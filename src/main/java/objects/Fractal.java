@@ -48,7 +48,7 @@ public class Fractal extends BaseObject {
         // Fractal has texture
         if (this.textureId != 0) {
             for (BaseObject object : objectList) {
-                object.setTexture(this.textureId);
+                object.setTexture(this.textureId, this.textureName);
                 object.render();
             }
         } else {
@@ -261,5 +261,9 @@ public class Fractal extends BaseObject {
 
     public ArrayList<BaseObject> getObjectList() {
         return objectList;
+    }
+
+    public FractalType getType() {
+        return type;
     }
 }

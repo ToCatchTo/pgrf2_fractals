@@ -8,7 +8,9 @@ public abstract class BaseObject {
     protected float scaleXYZ = 1;
     protected boolean isSelected = false;
     protected int textureId = 0;
+    protected String textureName = "";
     protected Fractal parentFractal = null;
+    protected boolean isWireframed = false;
 
     // Transformations
     public abstract void move(float x, float y, float z);
@@ -31,12 +33,45 @@ public abstract class BaseObject {
         isSelected = selected;
     }
 
-    public void setTexture(int textureId) {
+    public void setTexture(int textureId, String textureName) {
         this.textureId = textureId;
+        this.textureName = textureName;
     }
 
     public void setParentFractal(Fractal parentFractal) {
         this.parentFractal = parentFractal;
+    }
+
+    public void setScale(float scaleXYZ) {
+        this.scaleXYZ = scaleXYZ;
+    }
+
+    public void setPosX(float posX) {
+        this.posX = posX;
+    }
+
+    public void setPosY(float posY) {
+        this.posY = posY;
+    }
+
+    public void setPosZ(float posZ) {
+        this.posZ = posZ;
+    }
+
+    public void setAngleX(float angleX) {
+        this.angleX = angleX;
+    }
+
+    public void setAngleY(float angleY) {
+        this.angleY = angleY;
+    }
+
+    public void setAngleZ(float angleZ) {
+        this.angleZ = angleZ;
+    }
+
+    public void setWireframed(boolean wireframed) {
+        isWireframed = wireframed;
     }
 
     // Getters
@@ -49,4 +84,22 @@ public abstract class BaseObject {
     public int getTextureId() { return textureId; }
 
     public Fractal getParentFractal() { return parentFractal; }
+
+    public float getScale() { return scaleXYZ; }
+
+    public float getAngleX() {
+        return angleX;
+    }
+
+    public float getAngleY() {
+        return angleY;
+    }
+
+    public float getAngleZ() {
+        return angleZ;
+    }
+
+    public String getTextureName() {
+        return textureName;
+    }
 }

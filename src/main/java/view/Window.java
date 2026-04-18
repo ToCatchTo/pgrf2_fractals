@@ -8,8 +8,8 @@ import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.system.MemoryUtil.NULL;
 
 public class Window {
-    private final int width;
-    private final int height;
+    private int width;
+    private int height;
     private final Renderer renderer;
     private long window;
     private String title = "Semestrální projekt PGRF2: Tomáš Terč";
@@ -43,6 +43,12 @@ public class Window {
         if (window == NULL) throw new RuntimeException("Failed to create the GLFW window");
 
         // Set up callbacks
+        glfwSetFramebufferSizeCallback(window, (win, newWidth, newHeight) -> {
+            this.width = newWidth;
+            this.height = newHeight;
+            renderer.resize(newWidth, newHeight);
+        });
+
         glfwSetKeyCallback(window, (win, key, scancode, action, mods) -> {
             if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) {
                 glfwSetWindowShouldClose(win, true);
@@ -68,7 +74,7 @@ public class Window {
     public void loop() {
         GL.createCapabilities();
 
-        renderer.init();
+        renderer.init(window);
 
         while (!glfwWindowShouldClose(window)) {
             glfwMakeContextCurrent(window);
