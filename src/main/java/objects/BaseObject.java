@@ -11,6 +11,7 @@ public abstract class BaseObject {
     protected String textureName = "";
     protected Fractal parentFractal = null;
     protected boolean isWireframed = false;
+    protected float[] colorTop, colorBottom;
 
     // Transformations
     public abstract void move(float x, float y, float z);
@@ -72,6 +73,14 @@ public abstract class BaseObject {
 
     public void setWireframed(boolean wireframed) {
         isWireframed = wireframed;
+    }
+
+    public void setColorTop(float[] colorTop) {
+        this.colorTop = colorTop;
+    }
+
+    public void setColorBottom(float[] colorBottom) {
+        this.colorBottom = colorBottom;
     }
 
     // Getters

@@ -11,7 +11,6 @@ public class Fractal extends BaseObject {
     private float width, length, height;
     private float baseZ;
     private float gradientLevel;
-    private float[] colorTop, colorBottom;
     private FractalType type;
     private ArrayList<BaseObject> objectList = new ArrayList<BaseObject>();
 
@@ -30,7 +29,9 @@ public class Fractal extends BaseObject {
     }
 
     // Generates fractal based on given type and makes calculations only once for better performance
-    private void generate() {
+    public void generate() {
+        objectList.clear();
+
         if (type == FractalType.SIERPINSKI_PYRAMID) {
             generateSierpinski(depth, width, length, height, baseZ, gradientLevel, colorTop, colorBottom, 0, 0, 0);
         } else if (type == FractalType.MENGER_SPONGE) {
@@ -55,6 +56,10 @@ public class Fractal extends BaseObject {
             for (BaseObject object : objectList) {
                 object.render();
             }
+        }
+
+        for (BaseObject object : objectList) {
+            object.setWireframed(this.isWireframed);
         }
 
         // Fractal is selected

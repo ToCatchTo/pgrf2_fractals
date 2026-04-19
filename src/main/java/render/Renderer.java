@@ -2,7 +2,6 @@ package render;
 
 import imgui.ImGui;
 import imgui.flag.ImGuiCond;
-import imgui.flag.ImGuiConfigFlags;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
 import imgui.type.ImBoolean;
@@ -13,7 +12,6 @@ import utils.*;
 
 import java.awt.*;
 import java.util.ArrayList;
-import java.util.Locale;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -25,6 +23,13 @@ public class Renderer {
     private int width, height;
     private boolean isWireframeActive = false;
     private boolean isLightingActive = true;
+    private int fractalDepth = 1;
+    private int redTopFinal = 128;
+    private int greenTopFinal = 128;
+    private int blueTopFinal = 128;
+    private int redBottomFinal = 128;
+    private int greenBottomFinal = 128;
+    private int blueBottomFinal = 128;
     // Object management
     private ControlMode currentControlMode = ControlMode.NONE;
     private ArrayList<Fractal> fractals = new ArrayList<Fractal>();
@@ -142,9 +147,6 @@ public class Renderer {
             renderLight();
         }
 
-        // Render GUI
-        renderGUI();
-
         // Projection
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
@@ -161,6 +163,10 @@ public class Renderer {
         renderAxis();
         // Render of text
         renderText();
+        // Render GUI
+        renderGUI();
+
+        System.out.println(basicObjects);
     }
 
     // FPS calculation
@@ -416,7 +422,7 @@ public class Renderer {
                         currentControlMode = ControlMode.NONE;
                     break;
                     case GLFW_KEY_O:
-                        if(currentControlMode != ControlMode.OBJECT_SELECTION) {
+                        if(currentControlMode != ControlMode.OBJECT_SELECTION && !basicObjects.isEmpty()) {
                             currentControlMode = ControlMode.OBJECT_SELECTION;
                             if(selectedFractal != null) selectedFractal.setSelected(false);
                             selectedFractal = null;
@@ -426,7 +432,7 @@ public class Renderer {
                         }
                     break;
                     case GLFW_KEY_F:
-                        if(currentControlMode != ControlMode.FRACTAL_SELECTION) {
+                        if(currentControlMode != ControlMode.FRACTAL_SELECTION && !fractals.isEmpty()) {
                             currentControlMode = ControlMode.FRACTAL_SELECTION;
                             if(selectedObject != null) selectedObject.setSelected(false);
                             selectedObject = null;
@@ -449,16 +455,34 @@ public class Renderer {
                             basicObjects.remove(selectedObjectIndex);
                             selectedObjectIndex = 0;
                             selectedObject = !basicObjects.isEmpty() ? basicObjects.get(selectedObjectIndex) : null;
+                            if(selectedObject != null)  {
+                                selectedObject.setSelected(true);
+                            } else if(!fractals.isEmpty()) {
+                                isFractalModeActive = true;
+                                selectedFractal = fractals.get(selectedFractalIndex);
+                                selectedFractal.setSelected(true);
+                            }
                         } else if(selectedFractal != null) {
                             fractals.remove(selectedFractalIndex);
                             selectedFractalIndex = 0;
                             selectedFractal = !fractals.isEmpty() ? fractals.get(selectedFractalIndex) : null;
+                            if(selectedFractal != null)  {
+                                selectedFractal.setSelected(true);
+                            } else if(!basicObjects.isEmpty()) {
+                                isFractalModeActive = false;
+                                selectedObject = basicObjects.get(selectedObjectIndex);
+                                selectedObject.setSelected(true);
+                            }
                         }
                     break;
                     case GLFW_KEY_X:
                         isWireframeActive = !isWireframeActive;
                         for (BaseObject object : basicObjects) {
                             object.setWireframed(isWireframeActive);
+                        }
+
+                        for(BaseObject fractal : fractals) {
+                            fractal.setWireframed(isWireframeActive);
                         }
                     break;
                 }
@@ -636,26 +660,26 @@ public class Renderer {
 
     // Test scene render
     public void renderTestScene() {
-        Cube cube = new Cube(10.0f, 10.0f, 10.0f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f});
-        basicObjects.add(cube);
-
-        Cube cube2 = new Cube(10.0f, 10.0f, 10.0f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f});
-        basicObjects.add(cube2);
-        cube2.move(80f, 0f, 0f);
-
-        Pyramid pyramid = new Pyramid(10.0f, 10.0f, 10.0f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f});
-        basicObjects.add(pyramid);
-        pyramid.move(20f, 0f, 0f);
-
-        Fractal sierpinskiPyramid = new Fractal(4, 10f, 10f, 10f, 0f, 10f, new float[] {1f, 0f, 1f}, new float[] {0f, 0f, 1f}, FractalType.SIERPINSKI_PYRAMID);
-        fractals.add(sierpinskiPyramid);
-        basicObjects.addAll(sierpinskiPyramid.getObjectList());
-        sierpinskiPyramid.move(40f, 0f, 0f);
-
-        Fractal mengerSponge = new Fractal(2, 10f, 10f, 10f, 0f, 10f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f}, FractalType.MENGER_SPONGE);
-        fractals.add(mengerSponge);
-        basicObjects.addAll(mengerSponge.getObjectList());
-        mengerSponge.move(60f, 0f, 0f);
+//        Cube cube = new Cube(10.0f, 10.0f, 10.0f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f});
+//        basicObjects.add(cube);
+//
+//        Cube cube2 = new Cube(10.0f, 10.0f, 10.0f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f});
+//        basicObjects.add(cube2);
+//        cube2.move(80f, 0f, 0f);
+//
+//        Pyramid pyramid = new Pyramid(10.0f, 10.0f, 10.0f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f});
+//        basicObjects.add(pyramid);
+//        pyramid.move(20f, 0f, 0f);
+//
+//        Fractal sierpinskiPyramid = new Fractal(4, 10f, 10f, 10f, 0f, 10f, new float[] {1f, 0f, 1f}, new float[] {0f, 0f, 1f}, FractalType.SIERPINSKI_PYRAMID);
+//        fractals.add(sierpinskiPyramid);
+//        basicObjects.addAll(sierpinskiPyramid.getObjectList());
+//        sierpinskiPyramid.move(40f, 0f, 0f);
+//
+//        Fractal mengerSponge = new Fractal(2, 10f, 10f, 10f, 0f, 10f, new float[] {1f, 0f, 0f}, new float[] {0f, 1f, 0f}, FractalType.MENGER_SPONGE);
+//        fractals.add(mengerSponge);
+//        basicObjects.addAll(mengerSponge.getObjectList());
+//        mengerSponge.move(60f, 0f, 0f);
     }
 
     // Light source initialization
@@ -705,9 +729,27 @@ public class Renderer {
         ImGui.setNextWindowPos(width - ImGui.getWindowWidth() - 15, 15, ImGuiCond.Always);
         ImGui.begin("Control panel");
 
+        // Scene
+        BaseObject currentObject;
+
+        // Fractals
+        ImInt depth = new ImInt(fractalDepth);
+
         if (!basicObjects.isEmpty() || !fractals.isEmpty()) {
             // Scene
-            BaseObject currentObject = isFractalModeActive ? selectedFractal : selectedObject;
+            if(!fractals.isEmpty() && isFractalModeActive) {
+                currentObject = selectedFractal;
+            } else if(fractals.isEmpty() && isFractalModeActive) {
+                isFractalModeActive = false;
+                selectedObject = basicObjects.get(selectedObjectIndex);
+                currentObject = selectedObject;
+            } else if(basicObjects.isEmpty()) {
+                isFractalModeActive = true;
+                selectedFractal = fractals.get(selectedFractalIndex);
+                currentObject = selectedFractal;
+            } else {
+                currentObject = selectedObject;
+            }
             ImBoolean wireframe = new ImBoolean(isWireframeActive);
             ImBoolean lighting = new ImBoolean(isLightingActive);
 
@@ -724,6 +766,14 @@ public class Renderer {
             ImFloat lightPosX = new ImFloat(lightSource.getPosX());
             ImFloat lightPosY = new ImFloat(lightSource.getPosY());
             ImFloat lightPosZ = new ImFloat(lightSource.getPosZ());
+
+            // Colors
+            ImInt redTop = new ImInt(redTopFinal);
+            ImInt greenTop = new ImInt(greenTopFinal);
+            ImInt blueTop = new ImInt(blueTopFinal);
+            ImInt redBottom = new ImInt(redBottomFinal);
+            ImInt greenBottom = new ImInt(greenBottomFinal);
+            ImInt blueBottom = new ImInt(blueBottomFinal);
 
             // Textures
             ImInt texturesIndex = null;
@@ -747,6 +797,9 @@ public class Renderer {
                 isWireframeActive = wireframe.get();
                 for (BaseObject object : basicObjects) {
                     object.setWireframed(isWireframeActive);
+                }
+                for (BaseObject fractal : fractals) {
+                    fractal.setWireframed(isWireframeActive);
                 }
             }
             if (ImGui.checkbox("Lighting", lighting)) {
@@ -815,12 +868,10 @@ public class Renderer {
             ImGui.textColored(1f, 1f, 0f, 1f, "Scale");
             ImGui.separator();
             ImGui.indent();
-
             ImGui.setNextItemWidth(100);
             if (ImGui.inputFloat("##scaleXYZ", scaleXYZ)) {
                 currentObject.setScale(scaleXYZ.floatValue());
             }
-
             ImGui.unindent();
             ImGui.separator();
 
@@ -852,11 +903,70 @@ public class Renderer {
             ImGui.unindent();
             ImGui.separator();
 
+            // Colors
+            ImGui.textColored(1f, 1f, 0f, 1f, "Colors");
+            ImGui.separator();
+            ImGui.indent();
+            if (ImGui.beginTable("RGBColorTable", 3)) {
+                ImGui.tableNextRow();
+                ImGui.tableNextColumn();
+                ImGui.setNextItemWidth(-1);
+                if (ImGui.inputInt("##redTop", redTop)) {
+                    if(redTop.get() > 255) redTop.set(255);
+                    else if(redTop.get() < 0) redTop.set(0);
+                    redTopFinal = redTop.get();
+                    colorize();
+                }
+                ImGui.tableNextColumn();
+                ImGui.setNextItemWidth(-1);
+                if (ImGui.inputInt("##greenTop", greenTop)) {
+                    if(greenTop.get() > 255) greenTop.set(255);
+                    else if(greenTop.get() < 0) greenTop.set(0);
+                    greenTopFinal = greenTop.get();
+                    colorize();
+                }
+                ImGui.tableNextColumn();
+                ImGui.setNextItemWidth(-1);
+                if (ImGui.inputInt("##blueTop", blueTop)) {
+                    if(blueTop.get() > 255) blueTop.set(255);
+                    else if(blueTop.get() < 0) blueTop.set(0);
+                    blueTopFinal = blueTop.get();
+                    colorize();
+                }
+                ImGui.tableNextRow();
+                ImGui.tableNextColumn();
+                ImGui.setNextItemWidth(-1);
+                if(ImGui.inputInt("##redBottom", redBottom)) {
+                    if(redBottom.get() > 255) redBottom.set(255);
+                    else if(redBottom.get() < 0) redBottom.set(0);
+                    redBottomFinal = redBottom.get();
+                    colorize();
+                }
+                ImGui.tableNextColumn();
+                ImGui.setNextItemWidth(-1);
+                if (ImGui.inputInt("##greenBottom", greenBottom)) {
+                    if(greenBottom.get() > 255) greenBottom.set(255);
+                    else if(greenBottom.get() < 0) greenBottom.set(0);
+                    greenBottomFinal = greenBottom.get();
+                    colorize();
+                }
+                ImGui.tableNextColumn();
+                ImGui.setNextItemWidth(-1);
+                if (ImGui.inputInt("##blueBottom", blueBottom)) {
+                    if(blueBottom.get() > 255) blueBottom.set(255);
+                    else if(blueBottom.get() < 0) blueBottom.set(0);
+                    blueBottomFinal = blueBottom.get();
+                    colorize();
+                }
+                ImGui.endTable();
+            }
+            ImGui.unindent();
+            ImGui.separator();
+
             // Textures combo box
             ImGui.textColored(1f, 1f, 0f, 1f, "Textures");
             ImGui.separator();
             ImGui.indent();
-
             ImGui.text("Texture options:");
             ImGui.sameLine(150);
             ImGui.setNextItemWidth(200);
@@ -867,13 +977,87 @@ public class Renderer {
                     currentObject.setTexture(TextureLoader.loadTexture(textures[texturesIndex.get()]), textures[texturesIndex.get()]);
                 }
             }
-
             ImGui.unindent();
-
-            ImGui.unindent();
-        } else {
-            ImGui.text("No objects found");
+            ImGui.separator();
         }
+
+        // Object buttons
+        ImGui.textColored(1f, 1f, 0f, 1f, "Objects");
+        ImGui.separator();
+        ImGui.indent();
+        if (ImGui.button("Add Cube")) {
+            isFractalModeActive = false;
+            if(selectedFractal != null) selectedFractal.setSelected(false);
+            if(selectedObject != null) selectedObject.setSelected(false);
+            selectedFractal = null;
+            selectedFractalIndex = 0;
+
+            Cube cube = new Cube(10.0f, 10.0f, 10.0f, new float[] {0.5f, 0.5f, 0.5f}, new float[] {0.5f, 0.5f, 0.5f});
+            cube.setSelected(true);
+            selectedObject = cube;
+            basicObjects.add(cube);
+            selectedObjectIndex = basicObjects.size() - 1;
+        }
+        ImGui.sameLine(100);
+        if (ImGui.button("Add Pyramid")) {
+            isFractalModeActive = false;
+            if(selectedFractal != null) selectedFractal.setSelected(false);
+            if(selectedObject != null) selectedObject.setSelected(false);
+            selectedFractal = null;
+            selectedFractalIndex = 0;
+
+            Pyramid pyramid = new Pyramid(10.0f, 10.0f, 10.0f, new float[] {0.5f, 0.5f, 0.5f}, new float[] {0.5f, 0.5f, 0.5f});
+            pyramid.setSelected(true);
+            selectedObject = pyramid;
+            basicObjects.add(pyramid);
+            selectedObjectIndex = basicObjects.size() - 1;
+        }
+        ImGui.unindent();
+        ImGui.separator();
+
+        // Fractal text fields and buttons
+        ImGui.textColored(1f, 1f, 0f, 1f, "Fractals");
+        ImGui.separator();
+        ImGui.indent();
+        ImGui.text("Depth:");
+        ImGui.sameLine(80);
+        ImGui.setNextItemWidth(100);
+        if (ImGui.inputInt("##fractalDepth", depth)) {
+            if(depth.get() < 0) {
+                depth.set(0);
+            }
+            fractalDepth = depth.get();
+        }
+        if (ImGui.button("Add Menger Sponge")) {
+            isFractalModeActive = true;
+            if(selectedFractal != null) selectedFractal.setSelected(false);
+            if(selectedObject != null) selectedObject.setSelected(false);
+            selectedObject = null;
+            selectedObjectIndex = 0;
+
+            Fractal fractal = new Fractal(fractalDepth, 10f, 10f, 10f, 0f, 10f, new float[] {0.5f, 0.5f, 0.5f}, new float[] {0.5f, 0.5f, 0.5f}, FractalType.MENGER_SPONGE);
+            fractal.setSelected(true);
+            selectedFractal = fractal;
+            fractals.add(fractal);
+            basicObjects.addAll(fractal.getObjectList());
+            selectedFractalIndex = fractals.size() - 1;
+        }
+        ImGui.sameLine(163);
+        if (ImGui.button("Add Sierpinski Pyramid")) {
+            isFractalModeActive = true;
+            if(selectedFractal != null) selectedFractal.setSelected(false);
+            if(selectedObject != null) selectedObject.setSelected(false);
+            selectedObject = null;
+            selectedObjectIndex = 0;
+
+            Fractal fractal = new Fractal(fractalDepth, 10f, 10f, 10f, 0f, 10f, new float[] {0.5f, 0.5f, 0.5f}, new float[] {0.5f, 0.5f, 0.5f}, FractalType.SIERPINSKI_PYRAMID);
+            fractal.setSelected(true);
+            selectedFractal = fractal;
+            fractals.add(fractal);
+            basicObjects.addAll(fractal.getObjectList());
+            selectedFractalIndex = fractals.size() - 1;
+        }
+        ImGui.unindent();
 
         ImGui.end();
 
@@ -881,5 +1065,32 @@ public class Renderer {
         imGuiGl3.renderDrawData(ImGui.getDrawData());
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    }
+
+    private void colorize() {
+        if(isFractalModeActive) {
+            selectedFractal.setColorTop(new float[] {
+                    redTopFinal / 255.0f,
+                    greenTopFinal / 255.0f,
+                    blueTopFinal / 255.0f
+            });
+            selectedFractal.setColorBottom(new float[] {
+                    redBottomFinal / 255.0f,
+                    greenBottomFinal / 255.0f,
+                    blueBottomFinal / 255.0f
+            });
+            selectedFractal.generate();
+        } else {
+            selectedObject.setColorTop(new float[] {
+                    redTopFinal / 255.0f,
+                    greenTopFinal / 255.0f,
+                    blueTopFinal / 255.0f
+            });
+            selectedObject.setColorBottom(new float[] {
+                    redBottomFinal / 255.0f,
+                    greenBottomFinal / 255.0f,
+                    blueBottomFinal / 255.0f
+            });
+        }
     }
 }

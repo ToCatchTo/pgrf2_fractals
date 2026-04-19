@@ -4,7 +4,6 @@ import static org.lwjgl.opengl.GL11.*;
 
 public class Cube extends BaseObject {
     private float width, height, length;
-    private float[] colorTop, colorBottom;
 
     public Cube(float width, float length, float height, float[] colorTop, float[] colorBottom) {
         this.width = width; this.length = length; this.height = height;

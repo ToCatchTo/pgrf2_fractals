@@ -4,7 +4,6 @@ import static org.lwjgl.opengl.GL11.*;
 
 public class Pyramid extends BaseObject {
     private float width, height, length;
-    private float[] colorTop, colorBottom;
 
     public Pyramid(float width, float length, float height, float[] colorTop, float[] colorBottom) {
         this.width = width; this.length = length; this.height = height;
