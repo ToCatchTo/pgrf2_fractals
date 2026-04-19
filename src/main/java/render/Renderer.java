@@ -165,8 +165,6 @@ public class Renderer {
         renderText();
         // Render GUI
         renderGUI();
-
-        System.out.println(basicObjects);
     }
 
     // FPS calculation
