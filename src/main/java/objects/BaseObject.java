@@ -111,4 +111,8 @@ public abstract class BaseObject {
     public String getTextureName() {
         return textureName;
     }
+
+    public float[] getColorTop() { return colorTop; }
+
+    public float[] getColorBottom() { return colorBottom; }
 }
