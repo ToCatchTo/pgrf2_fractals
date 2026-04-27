@@ -31,13 +31,13 @@ public class GluUtils {
         glMultMatrixd(m);
     }
 
-    public static void gluPerspective(double fov, double aspect, double znear, double zfar) {
+    public static void gluPerspective(double fov, double aspect, double zNear, double zFar) {
         double[] m = new double[16];
         m[0] = 1 / (aspect * Math.tan(Math.toRadians(fov) / 2));
         m[5] = 1 / (Math.tan(Math.toRadians(fov) / 2));
         m[11] = -1;
-        m[10] = (zfar + znear) / (znear - zfar);
-        m[14] = 2 * zfar * znear / (znear - zfar);
+        m[10] = (zFar + zNear) / (zNear - zFar);
+        m[14] = 2 * zFar * zNear / (zNear - zFar);
 
         glMultMatrixd(m);
     }

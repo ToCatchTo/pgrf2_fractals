@@ -153,7 +153,7 @@ public class Renderer {
 
         // Perspective Switch
         if (per)
-            gluPerspective(45, width / (float) height, 0.1f, 100.0f);
+            gluPerspective(45, width / (float) height, 0.1f, 500.0f);
         else
             glOrtho(-20 * width / (float) height,
                     20 * width / (float) height,
@@ -165,6 +165,8 @@ public class Renderer {
         renderText();
         // Render GUI
         renderGUI();
+
+        System.out.println(basicObjects);
     }
 
     // FPS calculation
@@ -461,6 +463,7 @@ public class Renderer {
                                 selectedFractal.setSelected(true);
                             }
                         } else if(selectedFractal != null) {
+                            basicObjects.removeIf(obj -> obj.getParentFractal() == selectedFractal);
                             fractals.remove(selectedFractalIndex);
                             selectedFractalIndex = 0;
                             selectedFractal = !fractals.isEmpty() ? fractals.get(selectedFractalIndex) : null;
