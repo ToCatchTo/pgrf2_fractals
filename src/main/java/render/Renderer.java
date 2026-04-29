@@ -1,6 +1,8 @@
 package render;
 
+import imgui.ImFontConfig;
 import imgui.ImGui;
+import imgui.ImGuiIO;
 import imgui.flag.ImGuiCond;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
@@ -58,6 +60,7 @@ public class Renderer {
     // GUI
     private final ImGuiImplGlfw imGuiGlfw = new ImGuiImplGlfw();
     private final ImGuiImplGl3 imGuiGl3 = new ImGuiImplGl3();
+    private boolean showHelp = false;
 
     public Renderer(int width, int height) {
         this.width = width;
@@ -776,7 +779,6 @@ public class Renderer {
 
             if(texturesIndex == null) texturesIndex = new ImInt(0);
 
-            // Scene info
             ImGui.textColored(1f, 1f, 0f, 1f, "Scene details");
             ImGui.separator();
             ImGui.indent();
@@ -1055,8 +1057,56 @@ public class Renderer {
             selectedFractalIndex = fractals.size() - 1;
         }
         ImGui.unindent();
+        ImGui.textColored(1f, 1f, 0f, 1f, "Help");
+        ImGui.separator();
+        ImGui.indent();
+        if (ImGui.button("Show Help")) {
+            showHelp = !showHelp;
+        }
 
         ImGui.end();
+
+        if (showHelp) {
+            ImGui.setNextWindowSize(500, 400, ImGuiCond.FirstUseEver);
+
+            ImBoolean pOpen = new ImBoolean(showHelp);
+
+            if (ImGui.begin("Help & Information", pOpen)) {
+                ImGui.textColored(1f, 1f, 0f, 1f, "General information ");
+                ImGui.separator();
+                ImGui.bulletText("Project name: Application for interactive visualization of 3D objects and fractals");
+                ImGui.bulletText("Author: Tomas Terc");
+                ImGui.bulletText("Subject/course: PGRF2 - CV04");
+                ImGui.bulletText("Submit date: 29.04.2026");
+
+                ImGui.spacing();
+                ImGui.separator();
+                ImGui.textColored(1f, 1f, 0f, 1f, "Key control");
+                ImGui.separator();
+                ImGui.bulletText("WASD & Mouse: Camera control");
+                ImGui.bulletText("P: Toggle Perspective/Orthographic view");
+                ImGui.spacing();
+                ImGui.separator();
+                ImGui.bulletText("T: Translation mode (Move)");
+                ImGui.bulletText("R: Rotation mode");
+                ImGui.bulletText("Z: Scaling mode (Size)");
+                ImGui.bulletText("L: Light source manipulation");
+                ImGui.bulletText("C: Clear / Disable all modes");
+                ImGui.spacing();
+                ImGui.separator();
+                ImGui.bulletText("O: Basic object selection (incl. individual fractal parts)");
+                ImGui.bulletText("F: Fractal selection (selects entire structure)");
+                ImGui.bulletText("Delete: Remove selected object");
+                ImGui.bulletText("X: Toggle Wireframe mode");
+                ImGui.spacing();
+                ImGui.separator();
+                ImGui.textWrapped("While in T, R, Z, O, or F modes, use:");
+                ImGui.bulletText("+, - and Arrows: Adjust values (position, rotation, depth...)");
+            }
+            ImGui.end();
+
+            showHelp = pOpen.get();
+        }
 
         ImGui.render();
         imGuiGl3.renderDrawData(ImGui.getDrawData());
