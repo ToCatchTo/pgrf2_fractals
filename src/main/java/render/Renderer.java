@@ -725,7 +725,6 @@ public class Renderer {
             } else {
                 currentObject = selectedObject;
             }
-            System.out.println(currentObject);
             ImBoolean wireframe = new ImBoolean(isWireframeActive);
             ImBoolean lighting = new ImBoolean(isLightingActive);
             ImBoolean perspective = new ImBoolean(per);
